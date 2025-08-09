@@ -1,53 +1,16 @@
-name: Auto Create Release
+name: Manual Create Release
 
-# 当main分支的package.json版本号发生变更时自动创建GitHub Release和tag
+# 手动触发创建GitHub Release和tag
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'package.json'
-  # 也支持手动触发
   workflow_dispatch:
+    inputs:
+      version:
+        description: '发布版本号 (例如: 1.0.0)'
+        required: true
+        type: string
 
 jobs:
-  check-version:
-    runs-on: ubuntu-latest
-    outputs:
-      version-changed: ${{ steps.check.outputs.changed }}
-      version: ${{ steps.check.outputs.version }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
-      
-      - name: Check if version changed
-        id: check
-        run: |
-          # 获取当前版本
-          CURRENT_VERSION=$(node -p "require('./package.json').version")
-          echo "Current version: $CURRENT_VERSION"
-          
-          # 检查上一次提交的版本
-          git checkout HEAD~1 -- package.json 2>/dev/null || echo "No previous version"
-          PREVIOUS_VERSION=$(node -p "require('./package.json').version" 2>/dev/null || echo "0.0.0")
-          echo "Previous version: $PREVIOUS_VERSION"
-          
-          # 恢复当前版本
-          git checkout HEAD -- package.json
-          
-          # 比较版本
-          if [ "$CURRENT_VERSION" != "$PREVIOUS_VERSION" ]; then
-            echo "Version changed from $PREVIOUS_VERSION to $CURRENT_VERSION"
-            echo "changed=true" >> $GITHUB_OUTPUT
-            echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
-          else
-            echo "Version not changed"
-            echo "changed=false" >> $GITHUB_OUTPUT
-          fi
-
   release:
-    needs: check-version
-    if: needs.check-version.outputs.version-changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -62,21 +25,21 @@ jobs:
 
       - name: Build extensions
         run: |
-          echo "Building extensions for version ${{ needs.check-version.outputs.version }}"
+          echo "Building extensions for version ${{ github.event.inputs.version }}"
           npm run build
           
           # 显示构建完成信息
-          echo "Build completed for version ${{ needs.check-version.outputs.version }}"
+          echo "Build completed for version ${{ github.event.inputs.version }}"
 
       - name: Create GitHub Release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: v${{ needs.check-version.outputs.version }}
-          release_name: Release v${{ needs.check-version.outputs.version }}
+          tag_name: v${{ github.event.inputs.version }}
+          release_name: Release v${{ github.event.inputs.version }}
           body: |
-            ## 🚀 网页休眠大师 v${{ needs.check-version.outputs.version }}
+            ## 🚀 网页休眠大师 v${{ github.event.inputs.version }}
             
             ### 📦 发布说明
             此版本已自动构建完成，扩展包将手动维护并发布到各大浏览器商店。
@@ -98,6 +61,6 @@ jobs:
 
       - name: Notify Success
         run: |
-          echo "🎉 Successfully created release for 网页休眠大师 v${{ needs.check-version.outputs.version }}"
-          echo "🏷️ Created GitHub release with tag v${{ needs.check-version.outputs.version }}"
+          echo "🎉 Successfully created release for 网页休眠大师 v${{ github.event.inputs.version }}"
+          echo "🏷️ Created GitHub release with tag v${{ github.event.inputs.version }}"
           echo "📦 Extension packages can be built manually using: npm run zip:all"
