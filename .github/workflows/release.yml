@@ -40,6 +40,7 @@ jobs:
         with:
           tag_name: v${{ github.event.inputs.version }}
           name: Release v${{ github.event.inputs.version }}
+          token: ${{ secrets.PAT_TOKEN }}
           body: |
             ## 🚀 网页休眠大师 v${{ github.event.inputs.version }}
             
@@ -60,8 +61,6 @@ jobs:
              ```
           draft: false
           prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
 
       - name: Notify Success
         run: |
