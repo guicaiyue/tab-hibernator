@@ -40,7 +40,7 @@ jobs:
         with:
           tag_name: v${{ github.event.inputs.version }}
           name: Release v${{ github.event.inputs.version }}
-          token: ${{ secrets.PAT_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           body: |
             ## 🚀 网页休眠大师 v${{ github.event.inputs.version }}
             
