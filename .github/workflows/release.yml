@@ -32,8 +32,14 @@ jobs:
           echo "Building extensions for version ${{ github.event.inputs.version }}"
           npm run build
           
+          # 构建各浏览器的zip包
+          echo "Creating zip packages for all browsers..."
+          npm run zip:all
+          
           # 显示构建完成信息
           echo "Build completed for version ${{ github.event.inputs.version }}"
+          echo "Generated zip packages:"
+          ls -la .output/*.zip || echo "No zip files found in .output/"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
@@ -45,11 +51,36 @@ jobs:
             ## 🚀 网页休眠大师 v${{ github.event.inputs.version }}
             
             ### 📦 发布说明
-            此版本已自动构建完成，扩展包将手动维护并发布到各大浏览器商店。
+            此版本已自动构建完成，包含Chrome、Firefox和Edge三个浏览器的扩展包。
             
             ### 📥 安装方式
+            
+            #### 🏪 从应用商店安装（推荐）
             - **Chrome/Edge**: 从各自的应用商店搜索"网页休眠大师"
             - **Firefox**: 从Firefox Add-ons搜索"Tab Hibernator"
+            
+            #### 📁 手动安装开发版本
+            
+            **Chrome浏览器：**
+            1. 下载 `tab-hibernator-chrome.zip` 并解压
+            2. 打开Chrome，进入 `chrome://extensions/`
+            3. 开启右上角的"开发者模式"
+            4. 点击"加载已解压的扩展程序"
+            5. 选择解压后的文件夹
+            
+            **Firefox浏览器：**
+            1. 下载 `tab-hibernator-firefox.zip`
+            2. 打开Firefox，进入 `about:debugging`
+            3. 点击"此Firefox"
+            4. 点击"临时载入附加组件"
+            5. 选择zip文件或解压后的manifest.json文件
+            
+            **Edge浏览器：**
+            1. 下载 `tab-hibernator-edge.zip` 并解压
+            2. 打开Edge，进入 `edge://extensions/`
+            3. 开启左下角的"开发人员模式"
+            4. 点击"加载解压缩的扩展"
+            5. 选择解压后的文件夹
             
             ### 🔄 更新内容
             请查看提交历史了解详细更新内容。
@@ -59,6 +90,10 @@ jobs:
              ```bash
              npm run zip:all
              ```
+          files: |
+            .output/*chrome*.zip
+            .output/*firefox*.zip
+            .output/*edge*.zip
           draft: false
           prerelease: false
 
