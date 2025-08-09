@@ -4,7 +4,7 @@ export default defineConfig({
   manifest: {
     name: '网页休眠大师',
     description: '智能管理标签页休眠，自动节省内存和CPU资源，提升浏览器性能',
-    version: '1.0.0',
+    version: '0.0.1',
     permissions: [
       'tabs',
       'storage',
