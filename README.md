@@ -2,6 +2,10 @@
 
 一个基于 WXT 框架开发的浏览器插件，可以自动休眠不活跃的标签页以节省内存和CPU资源。
 
+## ⭐ Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=guicaiyue/tab-hibernator&type=Date)](https://star-history.com/#guicaiyue/tab-hibernator&Date)
+
 ## 功能特性
 
 - 🛌 **自动休眠**：自动检测并休眠不活跃的标签页
