@@ -1,0 +1,140 @@
+name: Auto Release Extension
+
+# 当main分支的package.json版本号发生变更时触发
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'package.json'
+  # 也支持手动触发
+  workflow_dispatch:
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version-changed: ${{ steps.check.outputs.changed }}
+      version: ${{ steps.check.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      
+      - name: Check if version changed
+        id: check
+        run: |
+          # 获取当前版本
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo "Current version: $CURRENT_VERSION"
+          
+          # 检查上一次提交的版本
+          git checkout HEAD~1 -- package.json 2>/dev/null || echo "No previous version"
+          PREVIOUS_VERSION=$(node -p "require('./package.json').version" 2>/dev/null || echo "0.0.0")
+          echo "Previous version: $PREVIOUS_VERSION"
+          
+          # 恢复当前版本
+          git checkout HEAD -- package.json
+          
+          # 比较版本
+          if [ "$CURRENT_VERSION" != "$PREVIOUS_VERSION" ]; then
+            echo "Version changed from $PREVIOUS_VERSION to $CURRENT_VERSION"
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          else
+            echo "Version not changed"
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+  release:
+    needs: check-version
+    if: needs.check-version.outputs.version-changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build and zip extensions
+        run: |
+          echo "Building extensions for version ${{ needs.check-version.outputs.version }}"
+          pnpm run zip:all
+          
+          # 列出生成的文件
+          echo "Generated files:"
+          ls -la .output/
+
+      - name: Submit to stores
+        run: |
+          echo "Submitting to Chrome Web Store, Firefox Add-ons, and Edge Add-ons"
+          pnpm wxt submit \
+            --chrome-zip .output/*-chrome.zip \
+            --firefox-zip .output/*-firefox.zip \
+            --firefox-sources-zip .output/*-sources.zip \
+            --edge-zip .output/*-chrome.zip
+        env:
+          # Chrome Web Store 配置
+          CHROME_EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
+          CHROME_CLIENT_ID: ${{ secrets.CHROME_CLIENT_ID }}
+          CHROME_CLIENT_SECRET: ${{ secrets.CHROME_CLIENT_SECRET }}
+          CHROME_REFRESH_TOKEN: ${{ secrets.CHROME_REFRESH_TOKEN }}
+          
+          # Firefox Add-ons 配置
+          FIREFOX_EXTENSION_ID: ${{ secrets.FIREFOX_EXTENSION_ID }}
+          FIREFOX_JWT_ISSUER: ${{ secrets.FIREFOX_JWT_ISSUER }}
+          FIREFOX_JWT_SECRET: ${{ secrets.FIREFOX_JWT_SECRET }}
+          
+          # Microsoft Edge Add-ons 配置
+          EDGE_PRODUCT_ID: ${{ secrets.EDGE_PRODUCT_ID }}
+          EDGE_CLIENT_ID: ${{ secrets.EDGE_CLIENT_ID }}
+          EDGE_CLIENT_SECRET: ${{ secrets.EDGE_CLIENT_SECRET }}
+          EDGE_ACCESS_TOKEN_URL: ${{ secrets.EDGE_ACCESS_TOKEN_URL }}
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ needs.check-version.outputs.version }}
+          release_name: Release v${{ needs.check-version.outputs.version }}
+          body: |
+            ## 🚀 Tab Hibernator v${{ needs.check-version.outputs.version }}
+            
+            ### 📦 发布平台
+            - ✅ Chrome Web Store
+            - ✅ Firefox Add-ons
+            - ✅ Microsoft Edge Add-ons
+            
+            ### 📥 安装方式
+            - **Chrome/Edge**: 从各自的应用商店搜索"标签休眠大师"
+            - **Firefox**: 从Firefox Add-ons搜索"Tab Hibernator"
+            
+            ### 🔄 更新内容
+            请查看提交历史了解详细更新内容。
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Assets
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: .output/
+          asset_name: extension-packages-v${{ needs.check-version.outputs.version }}
+          asset_content_type: application/zip
+
+      - name: Notify Success
+        run: |
+          echo "🎉 Successfully released Tab Hibernator v${{ needs.check-version.outputs.version }}"
+          echo "📦 Submitted to all three browser stores"
+          echo "🏷️ Created GitHub release with tag v${{ needs.check-version.outputs.version }}"

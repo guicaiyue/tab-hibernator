@@ -17,7 +17,15 @@
 
 ## 安装方法
 
-### Chrome/Edge 浏览器
+### 🏪 应用商店安装（推荐）
+
+- **Chrome Web Store**: 搜索"标签休眠大师"或"Tab Hibernator"
+- **Firefox Add-ons**: 搜索"Tab Hibernator"
+- **Microsoft Edge Add-ons**: 搜索"标签休眠大师"或"Tab Hibernator"
+
+### 🛠️ 开发者安装
+
+#### Chrome/Edge 浏览器
 
 1. 打开浏览器的扩展管理页面：
    - Chrome: `chrome://extensions/`
@@ -127,6 +135,57 @@ browser-hibernation/
 2. **ID 变化**：休眠后的标签页 ID 可能会发生变化，插件已处理此情况
 3. **权限要求**：插件需要 `tabs`、`storage`、`activeTab` 权限
 4. **兼容性**：支持 Chrome、Firefox、Microsoft Edge 等主流浏览器
+
+## 🚀 开发与发布
+
+### 本地开发
+
+```bash
+# 安装依赖
+pnpm install
+
+# 开发模式（Chrome）
+pnpm run dev
+
+# 开发模式（Firefox）
+pnpm run dev:firefox
+
+# 开发模式（Edge）
+pnpm run dev:edge
+```
+
+### 构建打包
+
+```bash
+# 构建所有浏览器版本
+pnpm run build:chrome
+pnpm run build:firefox
+pnpm run build:edge
+
+# 打包为ZIP文件
+pnpm run zip:chrome
+pnpm run zip:firefox
+pnpm run zip:edge
+
+# 一键打包所有版本
+pnpm run zip:all
+```
+
+### 🤖 自动发布
+
+本项目配置了GitHub Actions自动发布工作流：
+
+- **触发条件**：当`main`分支的`package.json`版本号发生变更时自动触发
+- **发布平台**：同时发布到Chrome Web Store、Firefox Add-ons、Microsoft Edge Add-ons
+- **发布流程**：自动构建 → 提交审核 → 创建GitHub Release
+
+#### 发布步骤
+
+1. 修改`package.json`中的版本号
+2. 提交并推送到`main`分支
+3. GitHub Actions自动处理后续发布流程
+
+详细配置说明请参考：[RELEASE_SETUP.md](./RELEASE_SETUP.md)
 
 ## 许可证
 
