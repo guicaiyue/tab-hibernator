@@ -1,0 +1,38 @@
+<svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景渐变 -->
+  <defs>
+    <linearGradient id="bgGradient16" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- 背景圆角矩形 -->
+  <rect width="16" height="16" fill="url(#bgGradient16)" rx="3"/>
+  
+  <!-- 简化的标签页 -->
+  <g transform="translate(2, 3)">
+    <!-- 后面的标签页 -->
+    <rect x="1" y="1" width="10" height="6" fill="#adb5bd" rx="1" opacity="0.6"/>
+    
+    <!-- 前面的主标签页 -->
+    <rect x="0" y="0" width="10" height="6" fill="#f8f9fa" rx="1" stroke="#dee2e6" stroke-width="0.3"/>
+    
+    <!-- 标签页内容线条 -->
+    <line x1="1" y1="2" x2="8" y2="2" stroke="#6c757d" stroke-width="0.5" opacity="0.7"/>
+    <line x1="1" y1="4" x2="6" y2="4" stroke="#6c757d" stroke-width="0.5" opacity="0.5"/>
+  </g>
+  
+  <!-- 月亮图标 -->
+  <g transform="translate(10, 2)">
+    <circle cx="2" cy="2" r="1.8" fill="#ffd43b" opacity="0.9"/>
+    <circle cx="2.8" cy="1.2" r="1.4" fill="url(#bgGradient16)"/>
+  </g>
+  
+  <!-- 简化的Zzz符号 -->
+  <g transform="translate(5, 11)">
+    <text x="0" y="0" fill="#ffd43b" font-family="Arial, sans-serif" font-size="2.5" font-weight="bold" opacity="0.9">Z</text>
+    <text x="2" y="-1" fill="#ffd43b" font-family="Arial, sans-serif" font-size="3" font-weight="bold" opacity="0.7">Z</text>
+    <text x="4.5" y="-2" fill="#ffd43b" font-family="Arial, sans-serif" font-size="3.5" font-weight="bold" opacity="0.5">Z</text>
+  </g>
+</svg>

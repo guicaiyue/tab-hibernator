@@ -1,0 +1,28 @@
+{
+  "name": "tab-hibernator",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "build": "wxt build",
+    "build:chrome": "wxt build",
+    "build:firefox": "wxt build -b firefox",
+    "build:edge": "wxt build -b edge",
+    "zip": "wxt zip",
+    "zip:chrome": "wxt zip",
+    "zip:firefox": "wxt zip -b firefox",
+    "zip:edge": "wxt zip -b edge",
+    "zip:all": "npm run zip:chrome && npm run zip:firefox && npm run zip:edge",
+    "dev": "wxt",
+    "dev:chrome": "wxt",
+    "dev:firefox": "wxt -b firefox",
+    "dev:edge": "wxt -b edge",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["browser-extension", "tab-management", "memory-optimization", "hibernation"],
+  "author": "",
+  "license": "CC-BY-NC-SA-4.0",
+  "description": "A browser extension that automatically hibernates inactive tabs to save memory and CPU resources",
+  "devDependencies": {
+    "wxt": "^0.20.7"
+  }
+}

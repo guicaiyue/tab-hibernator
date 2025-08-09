@@ -1,0 +1,51 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景渐变 -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="tabGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f8f9fa;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#e9ecef;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- 背景圆角矩形 -->
+  <rect width="128" height="128" fill="url(#bgGradient)" rx="20"/>
+  
+  <!-- 标签页容器 -->
+  <g transform="translate(20, 25)">
+    <!-- 后面的标签页 -->
+    <rect x="8" y="8" width="72" height="50" fill="#adb5bd" rx="6" opacity="0.6"/>
+    <rect x="4" y="4" width="72" height="50" fill="#ced4da" rx="6" opacity="0.8"/>
+    
+    <!-- 前面的主标签页 -->
+    <rect x="0" y="0" width="72" height="50" fill="url(#tabGradient)" rx="6" stroke="#dee2e6" stroke-width="1"/>
+    
+    <!-- 标签页内容线条 -->
+    <line x1="8" y1="12" x2="56" y2="12" stroke="#6c757d" stroke-width="2" opacity="0.7"/>
+    <line x1="8" y1="20" x2="48" y2="20" stroke="#6c757d" stroke-width="2" opacity="0.5"/>
+    <line x1="8" y1="28" x2="40" y2="28" stroke="#6c757d" stroke-width="2" opacity="0.3"/>
+  </g>
+  
+  <!-- 月亮图标 -->
+  <g transform="translate(75, 20)">
+    <circle cx="15" cy="15" r="12" fill="#ffd43b" opacity="0.9"/>
+    <circle cx="20" cy="10" r="10" fill="url(#bgGradient)"/>
+  </g>
+  
+  <!-- Zzz 睡眠符号 -->
+  <g transform="translate(45, 70)">
+    <text x="0" y="0" fill="#ffd43b" font-family="Arial, sans-serif" font-size="16" font-weight="bold" opacity="0.9">Z</text>
+    <text x="15" y="-8" fill="#ffd43b" font-family="Arial, sans-serif" font-size="20" font-weight="bold" opacity="0.7">Z</text>
+    <text x="32" y="-18" fill="#ffd43b" font-family="Arial, sans-serif" font-size="24" font-weight="bold" opacity="0.5">Z</text>
+  </g>
+  
+  <!-- 装饰性星星 -->
+  <g fill="#ffd43b" opacity="0.6">
+    <polygon points="25,15 27,21 33,21 28,25 30,31 25,27 20,31 22,25 17,21 23,21" transform="scale(0.4)"/>
+    <polygon points="100,35 102,41 108,41 103,45 105,51 100,47 95,51 97,45 92,41 98,41" transform="scale(0.3)"/>
+    <polygon points="15,90 17,96 23,96 18,100 20,106 15,102 10,106 12,100 7,96 13,96" transform="scale(0.35)"/>
+  </g>
+</svg>
