@@ -52,22 +52,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
-        with:
-          version: latest
-
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'pnpm'
+          cache: 'npm'
 
       - name: Install dependencies
-        run: pnpm install
+        run: npm install
 
       - name: Build extensions
         run: |
           echo "Building extensions for version ${{ needs.check-version.outputs.version }}"
-          pnpm run build
+          npm run build
           
           # 显示构建完成信息
           echo "Build completed for version ${{ needs.check-version.outputs.version }}"
@@ -93,10 +89,10 @@ jobs:
             请查看提交历史了解详细更新内容。
             
             ### 🛠️ 开发者
-            如需构建扩展包，请运行：
-            ```bash
-            pnpm run zip:all
-            ```
+             如需构建扩展包，请运行：
+             ```bash
+             npm run zip:all
+             ```
           draft: false
           prerelease: false
 
@@ -104,4 +100,4 @@ jobs:
         run: |
           echo "🎉 Successfully created release for 网页休眠大师 v${{ needs.check-version.outputs.version }}"
           echo "🏷️ Created GitHub release with tag v${{ needs.check-version.outputs.version }}"
-          echo "📦 Extension packages can be built manually using: pnpm run zip:all"
+          echo "📦 Extension packages can be built manually using: npm run zip:all"
