@@ -9,6 +9,10 @@ on:
         required: true
         type: string
 
+permissions:
+  contents: write
+  pull-requests: read
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -32,12 +36,10 @@ jobs:
           echo "Build completed for version ${{ github.event.inputs.version }}"
 
       - name: Create GitHub Release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+        uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ github.event.inputs.version }}
-          release_name: Release v${{ github.event.inputs.version }}
+          name: Release v${{ github.event.inputs.version }}
           body: |
             ## 🚀 网页休眠大师 v${{ github.event.inputs.version }}
             
@@ -58,6 +60,8 @@ jobs:
              ```
           draft: false
           prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
 
       - name: Notify Success
         run: |
