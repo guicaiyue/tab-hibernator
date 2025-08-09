@@ -2,7 +2,7 @@ import { defineConfig } from 'wxt';
 
 export default defineConfig({
   manifest: {
-    name: '标签休眠大师',
+    name: '网页休眠大师',
     description: '智能管理标签页休眠，自动节省内存和CPU资源，提升浏览器性能',
     version: '1.0.0',
     permissions: [
@@ -16,7 +16,7 @@ export default defineConfig({
     ],
     action: {
       default_popup: 'popup.html',
-      default_title: '标签休眠大师'
+      default_title: '网页休眠大师'
     },
     background: {
       service_worker: 'background.js'

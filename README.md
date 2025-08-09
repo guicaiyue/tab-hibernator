@@ -1,4 +1,4 @@
-# 标签休眠大师 (Tab Hibernator)
+# 网页休眠大师 (Tab Hibernator)
 
 一个基于 WXT 框架开发的浏览器插件，可以自动休眠不活跃的标签页以节省内存和CPU资源。
 
@@ -19,9 +19,9 @@
 
 ### 🏪 应用商店安装（推荐）
 
-- **Chrome Web Store**: 搜索"标签休眠大师"或"Tab Hibernator"
+- **Chrome Web Store**: 搜索"网页休眠大师"或"Tab Hibernator"
 - **Firefox Add-ons**: 搜索"Tab Hibernator"
-- **Microsoft Edge Add-ons**: 搜索"标签休眠大师"或"Tab Hibernator"
+- **Microsoft Edge Add-ons**: 搜索"网页休眠大师"或"Tab Hibernator"
 
 ### 🛠️ 开发者安装
 
