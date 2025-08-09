@@ -1,6 +1,6 @@
-name: Auto Release Extension
+name: Auto Create Release
 
-# 当main分支的package.json版本号发生变更时触发
+# 当main分支的package.json版本号发生变更时自动创建GitHub Release和tag
 on:
   push:
     branches: [main]
@@ -64,40 +64,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Build and zip extensions
+      - name: Build extensions
         run: |
           echo "Building extensions for version ${{ needs.check-version.outputs.version }}"
-          pnpm run zip:all
+          pnpm run build
           
-          # 列出生成的文件
-          echo "Generated files:"
-          ls -la .output/
-
-      - name: Submit to stores
-        run: |
-          echo "Submitting to Chrome Web Store, Firefox Add-ons, and Edge Add-ons"
-          pnpm wxt submit \
-            --chrome-zip .output/*-chrome.zip \
-            --firefox-zip .output/*-firefox.zip \
-            --firefox-sources-zip .output/*-sources.zip \
-            --edge-zip .output/*-chrome.zip
-        env:
-          # Chrome Web Store 配置
-          CHROME_EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
-          CHROME_CLIENT_ID: ${{ secrets.CHROME_CLIENT_ID }}
-          CHROME_CLIENT_SECRET: ${{ secrets.CHROME_CLIENT_SECRET }}
-          CHROME_REFRESH_TOKEN: ${{ secrets.CHROME_REFRESH_TOKEN }}
-          
-          # Firefox Add-ons 配置
-          FIREFOX_EXTENSION_ID: ${{ secrets.FIREFOX_EXTENSION_ID }}
-          FIREFOX_JWT_ISSUER: ${{ secrets.FIREFOX_JWT_ISSUER }}
-          FIREFOX_JWT_SECRET: ${{ secrets.FIREFOX_JWT_SECRET }}
-          
-          # Microsoft Edge Add-ons 配置
-          EDGE_PRODUCT_ID: ${{ secrets.EDGE_PRODUCT_ID }}
-          EDGE_CLIENT_ID: ${{ secrets.EDGE_CLIENT_ID }}
-          EDGE_CLIENT_SECRET: ${{ secrets.EDGE_CLIENT_SECRET }}
-          EDGE_ACCESS_TOKEN_URL: ${{ secrets.EDGE_ACCESS_TOKEN_URL }}
+          # 显示构建完成信息
+          echo "Build completed for version ${{ needs.check-version.outputs.version }}"
 
       - name: Create GitHub Release
         uses: actions/create-release@v1
@@ -107,12 +80,10 @@ jobs:
           tag_name: v${{ needs.check-version.outputs.version }}
           release_name: Release v${{ needs.check-version.outputs.version }}
           body: |
-            ## 🚀 Tab Hibernator v${{ needs.check-version.outputs.version }}
+            ## 🚀 网页休眠大师 v${{ needs.check-version.outputs.version }}
             
-            ### 📦 发布平台
-            - ✅ Chrome Web Store
-            - ✅ Firefox Add-ons
-            - ✅ Microsoft Edge Add-ons
+            ### 📦 发布说明
+            此版本已自动构建完成，扩展包将手动维护并发布到各大浏览器商店。
             
             ### 📥 安装方式
             - **Chrome/Edge**: 从各自的应用商店搜索"网页休眠大师"
@@ -120,21 +91,17 @@ jobs:
             
             ### 🔄 更新内容
             请查看提交历史了解详细更新内容。
+            
+            ### 🛠️ 开发者
+            如需构建扩展包，请运行：
+            ```bash
+            pnpm run zip:all
+            ```
           draft: false
           prerelease: false
 
-      - name: Upload Release Assets
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: .output/
-          asset_name: extension-packages-v${{ needs.check-version.outputs.version }}
-          asset_content_type: application/zip
-
       - name: Notify Success
         run: |
-          echo "🎉 Successfully released Tab Hibernator v${{ needs.check-version.outputs.version }}"
-          echo "📦 Submitted to all three browser stores"
+          echo "🎉 Successfully created release for 网页休眠大师 v${{ needs.check-version.outputs.version }}"
           echo "🏷️ Created GitHub release with tag v${{ needs.check-version.outputs.version }}"
+          echo "📦 Extension packages can be built manually using: pnpm run zip:all"
