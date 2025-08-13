@@ -78,7 +78,7 @@ async function loadStats() {
 // 加载窗口列表
 async function loadWindowsList() {
   try {
-    const windows = await chrome.windows.getAll({ populate: false });
+    const windows = await browser.windows.getAll({ populate: false });
     allWindows = windows;
     
     // 调试：打印所有窗口信息    
@@ -97,7 +97,7 @@ async function loadWindowsList() {
     allWindows = filteredWindows;
     
     // 获取当前窗口
-    const currentWindow = await chrome.windows.getCurrent();
+    const currentWindow = await browser.windows.getCurrent();
     currentWindowId = currentWindow.id;
     
     const windowTabs = document.getElementById('windowTabs');
@@ -253,14 +253,14 @@ async function loadTabsList() {
   try {
     // 根据当前选中的窗口过滤标签页
     const queryOptions = currentWindowId ? { windowId: currentWindowId } : {};
-    const allTabs = await chrome.tabs.query(queryOptions);
+    const allTabs = await browser.tabs.query(queryOptions);
     
     // 检查浏览器是否支持标签页分组API
-    if (!chrome.tabGroups) {
+    if (!browser.tabGroups) {
       throw new Error('标签页分组API不支持');
     }
     
-    const groups = await chrome.tabGroups.query({});
+    const groups = await browser.tabGroups.query({});
     
     // 过滤掉无效的标签页（减少调试日志）
     const tabs = allTabs.filter(tab => {
@@ -315,7 +315,7 @@ async function loadTabsList() {
     // 如果浏览器不支持标签页分组，回退到原始方式
     try {
       const queryOptions = currentWindowId ? { windowId: currentWindowId } : {};
-      const allTabs = await chrome.tabs.query(queryOptions);
+      const allTabs = await browser.tabs.query(queryOptions);
       console.log('回退模式 - 所有标签页:', allTabs);
       
       // 在回退模式中也应用相同的过滤逻辑

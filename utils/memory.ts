@@ -51,12 +51,12 @@ export function estimateTotalMemory(totalTabs: number): number {
  */
 export async function getSystemMemoryUsage(): Promise<{memory: number, isAccurate: boolean}> {
   try {
-    if (typeof chrome !== 'undefined' && chrome.system && chrome.system.memory) {
+    if (typeof browser !== 'undefined' && browser.system && browser.system.memory) {
       // 获取系统内存信息
       const memoryInfo = await new Promise<any>((resolve, reject) => {
-        chrome.system.memory.getInfo((info) => {
-          if (chrome.runtime.lastError) {
-            reject(chrome.runtime.lastError);
+        browser.system.memory.getInfo((info) => {
+          if (browser.runtime.lastError) {
+            reject(browser.runtime.lastError);
           } else {
             resolve(info);
           }
