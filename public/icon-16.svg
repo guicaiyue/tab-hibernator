@@ -1,38 +1,28 @@
-<svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-  <!-- 背景渐变 -->
-  <defs>
-    <linearGradient id="bgGradient16" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
-    </linearGradient>
-  </defs>
-  
-  <!-- 背景圆角矩形 -->
-  <rect width="16" height="16" fill="url(#bgGradient16)" rx="3"/>
-  
-  <!-- 简化的标签页 -->
-  <g transform="translate(2, 3)">
-    <!-- 后面的标签页 -->
-    <rect x="1" y="1" width="10" height="6" fill="#adb5bd" rx="1" opacity="0.6"/>
-    
-    <!-- 前面的主标签页 -->
-    <rect x="0" y="0" width="10" height="6" fill="#f8f9fa" rx="1" stroke="#dee2e6" stroke-width="0.3"/>
-    
-    <!-- 标签页内容线条 -->
-    <line x1="1" y1="2" x2="8" y2="2" stroke="#6c757d" stroke-width="0.5" opacity="0.7"/>
-    <line x1="1" y1="4" x2="6" y2="4" stroke="#6c757d" stroke-width="0.5" opacity="0.5"/>
-  </g>
-  
-  <!-- 月亮图标 -->
-  <g transform="translate(10, 2)">
-    <circle cx="2" cy="2" r="1.8" fill="#ffd43b" opacity="0.9"/>
-    <circle cx="2.8" cy="1.2" r="1.4" fill="url(#bgGradient16)"/>
-  </g>
-  
-  <!-- 简化的Zzz符号 -->
-  <g transform="translate(5, 11)">
-    <text x="0" y="0" fill="#ffd43b" font-family="Arial, sans-serif" font-size="2.5" font-weight="bold" opacity="0.9">Z</text>
-    <text x="2" y="-1" fill="#ffd43b" font-family="Arial, sans-serif" font-size="3" font-weight="bold" opacity="0.7">Z</text>
-    <text x="4.5" y="-2" fill="#ffd43b" font-family="Arial, sans-serif" font-size="3.5" font-weight="bold" opacity="0.5">Z</text>
-  </g>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="16px" height="16px" viewBox="0 0 16 16" enable-background="new 0 0 16 16" xml:space="preserve">  <image id="image0" width="16" height="16" x="0" y="0"
+    href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABGdBTUEAALGPC/xhBQAAACBjSFJN
+AAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAACkVBMVEUUGyoUGigUHCoVGykU
+HCsUHSsUHSwRGikTGyoTGigTGigTGigTGigTGigUGigVGykUHCsUHSwTGigTGigUGigUHCsUHSyg
+qLJjbHoYIjIUGykUGygVHSxibn6jrLgTGygWHy9CUGS/zuETGikWITKYorATHCoWIjMUHSwVIjUe
+KTsVHi4WIzbM1uNzfYs0P08THS4XIza1vsvQ1+JpepEvQ16Vn661vMcVIDEXIjNqeIzi6vbCzduu
+ucivu8tyfo8WIDGapremsL0WHi4VHSwrPFSQnKzj6O+UoLEvP1YUHSwVHSxJWXCCj6GhrLujrbyF
+kqRNXXMVHSwUGyoUHCsVHSwUHCsUGykUGykUHCsVHS0VHy8WIDEXIjMWITEWHy8UHCsUGyoVGyoV
+Hi4UHi8cJzcvOEcZIjETGykTGigWHzAXIzZKVmcTHCoSGScSGSgVHzAXJDff5OseKz4UHCsVGykh
+JzUgJjQUGygVITPn7vdYZnsWJDgWIDEWHSxMUVxWW2YUGyoTGikaKD3q8vzd5O1CVGwYJjsXITIV
+Hi0ZITBgZnA+RVEsO1DI0Nzt8/3g5/FPYHkZKUAhLD5XXmkvN0UrM0EnLz0WHy8UHS06SV7J1eXO
+3vTY5faFk6cdMEsqN0psc38oMUEVIDEWITMeKDg1RFvj7fnn7/rY3uhQYnwoOVNBTmEkMUQZJjoe
+LUIjMkn0+P7a5vbj7PkjNlElOFI9TmYjMEOnxOq50O7x9v3l7PXU3Ofx9fsWIzcXIzUlNU3T4vXf
+6fjl7fnA1PDF2PLo8PvZ5vjf6vknNkwWIDAYJTjr8vvS4fbT4vbr8vzi6PAYJDgfL0YgMEcVHy4X
+ITMXIzcYJz0cLEMWJDf///8S5kt1AAAAY3RSTlMAAAAJUoiPj4+OjZCIUwsLjvX1kw1a9/79/vlg
+l/7+np/+/qag/qahpqH9paD++/2ln/7+/v7+/qWf/f7+/v7+pf3+ppb+/f7+/p33/v7+/v7++F+N
+9pIMCYeOjY2MjI2IVAtgGoSaAAAAAWJLR0Ta7gMmggAAAAd0SU1FB+kIDhEXO4RceO0AAAEbSURB
+VBjTARAB7/4AAAMEBQYGBwgJCgkLDA0OAQAPEBFjZGVmZ2hpaWlpEhMUABUWamtsFxgZbWlub2lp
+GhsAHHBxHXIec3B0dXZ3eGlpHwAgeSEient8fXR+f4CBgoIjACSDJYSFhoeIiYqLjHR0dCYAJ42O
+j5CRkpOUlZaXmGOZKAApmpucnZ6foKGiZKOkKqUrACymLaeoqaqrrK2uh68uLzAAMbAysbKzMzQ1
+tLW2Nje3OAA5hzo7uLm6uzw9Pry9P75AACC/wEHBwsPExcbHyELJpEMARMrLRUZHzM3Oz9BISXGY
+SgAVS33R0kxNTk9QUdNxylJTAA9UEdTV1tfY2NfZpGNVVlcAAlgEWVpbXF1dXl9aYGFiAE14a3/+
+zr3qAAAAJXRFWHRkYXRlOmNyZWF0ZQAyMDI1LTA4LTE0VDE3OjIzOjU5KzAwOjAwk3ylKAAAACV0
+RVh0ZGF0ZTptb2RpZnkAMjAyNS0wOC0xNFQxNzoyMzo1OSswMDowMOIhHZQAAAAodEVYdGRhdGU6
+dGltZXN0YW1wADIwMjUtMDgtMTRUMTc6MTg6NDArMDA6MDCNBOTwAAAAAElFTkSuQmCC" />
 </svg>

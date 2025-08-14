@@ -1,49 +1,50 @@
-<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-  <!-- 背景渐变 -->
-  <defs>
-    <linearGradient id="bgGradient32" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
-    </linearGradient>
-    <linearGradient id="tabGradient32" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#f8f9fa;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#e9ecef;stop-opacity:1" />
-    </linearGradient>
-  </defs>
-  
-  <!-- 背景圆角矩形 -->
-  <rect width="32" height="32" fill="url(#bgGradient32)" rx="6"/>
-  
-  <!-- 标签页容器 -->
-  <g transform="translate(4, 6)">
-    <!-- 后面的标签页 -->
-    <rect x="2" y="2" width="20" height="12" fill="#adb5bd" rx="2" opacity="0.6"/>
-    <rect x="1" y="1" width="20" height="12" fill="#ced4da" rx="2" opacity="0.8"/>
-    
-    <!-- 前面的主标签页 -->
-    <rect x="0" y="0" width="20" height="12" fill="url(#tabGradient32)" rx="2" stroke="#dee2e6" stroke-width="0.5"/>
-    
-    <!-- 标签页内容线条 -->
-    <line x1="2" y1="3" x2="16" y2="3" stroke="#6c757d" stroke-width="0.8" opacity="0.7"/>
-    <line x1="2" y1="6" x2="13" y2="6" stroke="#6c757d" stroke-width="0.8" opacity="0.5"/>
-    <line x1="2" y1="9" x2="10" y2="9" stroke="#6c757d" stroke-width="0.8" opacity="0.3"/>
-  </g>
-  
-  <!-- 月亮图标 -->
-  <g transform="translate(20, 4)">
-    <circle cx="4" cy="4" r="3.5" fill="#ffd43b" opacity="0.9"/>
-    <circle cx="5.5" cy="2.5" r="2.8" fill="url(#bgGradient32)"/>
-  </g>
-  
-  <!-- Zzz 睡眠符号 -->
-  <g transform="translate(10, 20)">
-    <text x="0" y="0" fill="#ffd43b" font-family="Arial, sans-serif" font-size="4" font-weight="bold" opacity="0.9">Z</text>
-    <text x="4" y="-2" fill="#ffd43b" font-family="Arial, sans-serif" font-size="5" font-weight="bold" opacity="0.7">Z</text>
-    <text x="9" y="-4" fill="#ffd43b" font-family="Arial, sans-serif" font-size="6" font-weight="bold" opacity="0.5">Z</text>
-  </g>
-  
-  <!-- 装饰性星星 -->
-  <g fill="#ffd43b" opacity="0.6">
-    <polygon points="6,3 7,6 10,6 8,8 9,11 6,9 3,11 4,8 2,6 5,6" transform="scale(0.25)"/>
-  </g>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="32px" height="32px" viewBox="0 0 32 32" enable-background="new 0 0 32 32" xml:space="preserve">  <image id="image0" width="32" height="32" x="0" y="0"
+    href="data:image/png;base64,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" />
 </svg>

@@ -18,7 +18,12 @@ export default defineConfig({
       background: {
         service_worker: 'background.js'
       },
-      icons: {
+      icons: browser === 'edge' ? {
+        16: 'icon-16.png',
+        32: 'icon-32.png', // Edge使用PNG格式以确保兼容性
+        48: 'icon-48.png', // Edge使用PNG格式以确保兼容性
+        128: 'icon-128.png'
+      } : {
         16: 'icon-16.png',
         32: 'icon-32.svg',
         48: 'icon-48.svg',
