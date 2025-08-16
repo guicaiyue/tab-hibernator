@@ -53,7 +53,8 @@ const translations = {
     "helpContent": "🛌 浏览器休眠控制插件使用说明：\n\n• 自动休眠：标签页超过设定时间未活动将自动休眠\n• 手动休眠：点击💤图标可手动休眠单个标签页\n• 批量休眠：鼠标悬停在统计区域的💤图标上可休眠所有活动标签页\n• 白名单：在设置中添加域名可防止特定网站被休眠\n• 智能过滤：自动排除活动、固定、有声标签页\n\n💡 提示：休眠的标签页会释放内存，重新点击时会自动恢复",
     "close": "关闭",
     "saveSettingsFailed": "保存设置失败",
-    "lastAccessedTime": "最后访问时间"
+    "lastAccessedTime": "最后访问时间",
+    "autoHibernatedTabs": "自动休眠{count}个网页"
   },
   en: {
     "extName": "Tab Hibernator",
@@ -98,7 +99,8 @@ const translations = {
     "helpContent": "🛌 Browser Tab Hibernator Usage Guide:\n\n• Auto Hibernation: Tabs will automatically hibernate after being inactive for the set time\n• Manual Hibernation: Click the 💤 icon to manually hibernate individual tabs\n• Batch Hibernation: Hover over the 💤 icon in the stats area to hibernate all active tabs\n• Whitelist: Add domains in settings to prevent specific websites from being hibernated\n• Smart Filtering: Automatically excludes active, pinned, and audible tabs\n\n💡 Tip: Hibernated tabs will free up memory and automatically restore when clicked",
     "close": "Close",
     "saveSettingsFailed": "Failed to save settings",
-    "lastAccessedTime": "Last Accessed Time"
+    "lastAccessedTime": "Last Accessed Time",
+    "autoHibernatedTabs": "Auto-hibernated {count} pages"
   }
 };
 
@@ -239,12 +241,11 @@ async function loadWindowsList() {
       const isDevTools = window.type === 'devtools';
       // 过滤掉 height 和 width 都为 0 的窗口
       const isInvalidSize = window.height === 0 && window.width === 0;
-      console.log(`窗口 ${window.id}: type=${window.type}, size=${window.width}x${window.height}, 是否为开发者工具=${isDevTools}, 是否为无效尺寸=${isInvalidSize}`);
+      // Window filtering logic
       return !isDevTools && !isInvalidSize;
     });
     
-    console.log('过滤后的窗口:', JSON.stringify(filteredWindows, null, 2));
-    console.log('过滤后窗口数量:', filteredWindows.length);
+    // Filtered windows processed
     allWindows = filteredWindows;
     
     // 获取当前窗口
@@ -453,12 +454,12 @@ async function loadTabsList() {
           fragment.appendChild(ungroupedElement);
         }
       } catch (groupError) {
-        console.log('标签页分组查询失败，使用简单模式:', groupError);
+        // Tab group query failed, using simple mode
         // 分组查询失败时，直接渲染所有标签页
         renderTabsWithoutGroups(tabs, fragment);
       }
     } else {
-      console.log('浏览器不支持标签页分组API，使用简单模式');
+      // Browser doesn't support tab groups API, using simple mode
       // 浏览器不支持分组时，直接渲染所有标签页
       renderTabsWithoutGroups(tabs, fragment);
     }
@@ -785,39 +786,142 @@ document.addEventListener('DOMContentLoaded', async function() {
   await loadWindowsList(); // 先加载窗口列表，设置currentWindowId
   loadStats(); // 然后加载统计信息
   loadTabsList(); // 最后加载标签页列表
+  await checkHibernationNotification(); // 检查并显示休眠通知
+  
+  // 通知background popup已连接
+  browser.runtime.sendMessage({ action: 'popupConnected' }).then(() => {
+    // Popup connected message sent to background
+  }).catch((error) => {
+    console.error('Failed to send popup connected message:', error);
+  });
   
   // 绑定头部按钮事件
   document.getElementById('settingsBtn').addEventListener('click', showSettingsDialog);
   document.getElementById('helpBtn').addEventListener('click', showHelpDialog);
   
-  // 添加测试按钮（临时调试用）
-  const testBtn = document.createElement('button');
-  testBtn.textContent = '测试休眠';
-  testBtn.style.cssText = 'margin: 10px; padding: 5px 10px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 4px; cursor: pointer;';
-  testBtn.onclick = async () => {
-    console.log('Triggering hibernation test...');
-    try {
-      const result = await browser.runtime.sendMessage({ action: 'testHibernation' });
-      console.log('Test result:', result);
-      showMessage('休眠测试已触发，请查看浏览器控制台', 'info');
-    } catch (error) {
-      console.error('Test failed:', error);
-    }
-  };
-  document.body.appendChild(testBtn);
+
   
   // 绑定休眠图标的鼠标悬停事件
   setupHibernateIconHover();
   
   // 监听来自background的标签页变化消息
   browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    // Popup received message
     if (message.action === 'tabsChanged') {
       // 使用防抖的方式更新标签页列表和统计信息
       debouncedLoadTabsList();
       loadStats();
+    } else if (message.action === 'showRealtimeHibernationNotification') {
+      // Showing realtime hibernation notification
+      // 显示实时休眠通知，优先显示批量数量
+      const displayCount = message.batchCount || message.count;
+      showHibernationNotification(displayCount);
+      // 重置计数器
+      browser.runtime.sendMessage({ action: 'resetHibernationCount' }).catch(() => {});
     }
   });
 });
+
+// 页面卸载时通知background
+window.addEventListener('beforeunload', () => {
+  browser.runtime.sendMessage({ action: 'popupDisconnected' }).catch(() => {
+    // 忽略连接错误
+  });
+});
+
+// 页面隐藏时也通知background（处理popup关闭的情况）
+window.addEventListener('pagehide', () => {
+  browser.runtime.sendMessage({ action: 'popupDisconnected' }).catch(() => {
+    // 忽略连接错误
+  });
+});
+
+// 检查并显示休眠通知
+async function checkHibernationNotification() {
+  try {
+    const response = await browser.runtime.sendMessage({ action: 'getHibernationCount' });
+    const count = response.count;
+    
+    if (count > 0) {
+      // 显示休眠通知
+      showHibernationNotification(count);
+      
+      // 重置计数器
+      await browser.runtime.sendMessage({ action: 'resetHibernationCount' });
+    }
+  } catch (error) {
+    console.error('Error checking hibernation notification:', error);
+  }
+}
+
+// 显示休眠通知
+function showHibernationNotification(count) {
+  const message = dynamicT('autoHibernatedTabs').replace('{count}', count);
+  
+  // 创建通知元素
+  const notification = document.createElement('div');
+  notification.className = 'hibernation-notification';
+  notification.innerHTML = `
+    <div class="notification-content">
+      <span class="notification-icon">💤</span>
+      <span class="notification-text">${message}</span>
+      <button class="notification-close" onclick="this.parentElement.parentElement.remove()">×</button>
+    </div>
+  `;
+  
+  // 添加样式
+  notification.style.cssText = `
+    position: fixed;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #4CAF50;
+    color: white;
+    padding: 12px 16px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 1000;
+    font-size: 14px;
+    animation: slideDown 0.3s ease-out;
+  `;
+  
+  // 添加动画样式
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes slideDown {
+      from { transform: translateX(-50%) translateY(-100%); opacity: 0; }
+      to { transform: translateX(-50%) translateY(0); opacity: 1; }
+    }
+    .notification-content {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .notification-close {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 18px;
+      cursor: pointer;
+      padding: 0;
+      margin-left: 8px;
+    }
+    .notification-close:hover {
+      opacity: 0.8;
+    }
+  `;
+  document.head.appendChild(style);
+  
+  // 添加到页面
+  document.body.appendChild(notification);
+  
+  // 3秒后自动消失
+  setTimeout(() => {
+    if (notification.parentElement) {
+      notification.remove();
+    }
+  }, 3000);
+}
 
 // 设置休眠图标的悬停效果
 function setupHibernateIconHover() {

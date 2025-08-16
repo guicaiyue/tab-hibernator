@@ -32,5 +32,6 @@
   "chinese": "中文",
   "english": "English",
   "languageChanged": "语言已切换",
-  "pluginSettings": "插件设置"
+  "pluginSettings": "插件设置",
+  "autoHibernatedTabs": "自动休眠{count}个网页"
 }

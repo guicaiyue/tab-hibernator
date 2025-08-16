@@ -7,8 +7,6 @@ export default defineBackground(() => {
   // 调试开关 - 生产环境可设为 false
   const DEBUG = true;
   const debugLog = DEBUG ? console.log : () => {};
-  
-  console.log('Browser Hibernation Extension loaded!');
 
   // 存储标签页的最后活动时间
   const tabLastActivity = new Map<number, number>();
@@ -19,6 +17,12 @@ export default defineBackground(() => {
   // 白名单域名
   const whitelist = new Set<string>();
   
+  // 自动休眠计数器
+  let autoHibernationCount = 0;
+  
+  // 跟踪popup连接状态
+  let isPopupConnected = false;
+  
   // 初始化设置
   async function initializeSettings() {
     try {
@@ -26,10 +30,10 @@ export default defineBackground(() => {
       
       if (result.hibernationDelay !== undefined) {
         hibernationDelay = result.hibernationDelay;
-        console.log('Loaded hibernation delay from storage:', hibernationDelay, 'ms =', Math.round(hibernationDelay/60000), 'minutes');
+        // Hibernation delay loaded from storage
         debugLog('Loaded hibernation delay:', hibernationDelay);
       } else {
-        console.log('No hibernation delay found in storage, using default:', hibernationDelay);
+        // Using default hibernation delay
       }
       
       if (result.whitelist && Array.isArray(result.whitelist)) {
@@ -58,8 +62,7 @@ export default defineBackground(() => {
   // 启动时初始化设置
   initializeSettings();
   
-  console.log('Extension background script loaded successfully!');
-  console.log('Initial hibernationDelay:', hibernationDelay);
+  // Extension background script loaded successfully
 
   // 通知popup标签页发生变化
   function notifyPopupTabsChanged(eventType: string, tabId?: number, group?: any, changeInfo?: any) {
@@ -222,10 +225,12 @@ export default defineBackground(() => {
 
   
   // 休眠标签页
-  async function hibernateTab(tabId: number) {
+  async function hibernateTab(tabId: number, isAutoHibernation: boolean = false) {
     try {
       await browser.tabs.discard(tabId);
-      console.log(`Tab ${tabId} hibernated`);
+      if (isAutoHibernation) {
+    autoHibernationCount++;
+  }
     } catch (error) {
       console.error(`Error hibernating tab ${tabId}:`, error);
     }
@@ -246,29 +251,41 @@ export default defineBackground(() => {
       debugLog(`Checking ${tabs.length} tabs for hibernation`);
       
       let hibernatedCount = 0;
+      const initialCount = autoHibernationCount;
+      
       for (const tab of tabs) {
         if (shouldHibernateTab(tab) && tab.id) {
-          await hibernateTab(tab.id);
+          await hibernateTab(tab.id, true); // 标记为自动休眠
           hibernatedCount++;
         }
       }
       
       debugLog(`Hibernation check completed. Hibernated ${hibernatedCount} tabs.`);
+      
+      // 如果有标签页被休眠且popup当前打开，发送批量通知
+      if (hibernatedCount > 0 && isPopupConnected) {
+        try {
+        await browser.runtime.sendMessage({
+          action: 'showRealtimeHibernationNotification',
+          count: autoHibernationCount,
+          batchCount: hibernatedCount
+        });
+      } catch (error) {
+        // Popup not connected for batch notification
+      }
+      }
     } catch (error) {
       console.error('Error during hibernation check:', error);
     }
   }
   
   // 每分钟检查一次
-  console.log('Setting up hibernation check interval (60 seconds)');
   setInterval(() => {
-    console.log('Hibernation check interval triggered at:', new Date().toLocaleString());
     checkForHibernation();
   }, 60 * 1000);
   
   // 立即执行一次检查（用于测试）
   setTimeout(() => {
-    console.log('Initial hibernation check after 5 seconds');
     checkForHibernation();
   }, 5000);
   
@@ -311,13 +328,26 @@ export default defineBackground(() => {
         }
         break;
         
-      case 'testHibernation':
-        debugLog('Manual hibernation test triggered');
-        checkForHibernation();
+
+      
+      case 'getHibernationCount':
+        sendResponse({ count: autoHibernationCount });
+        break;
+      
+      case 'resetHibernationCount':
+        autoHibernationCount = 0;
         sendResponse({ success: true });
         break;
-        
-
+      
+      case 'popupConnected':
+        isPopupConnected = true;
+        sendResponse({ success: true });
+        break;
+      
+      case 'popupDisconnected':
+        isPopupConnected = false;
+        sendResponse({ success: true });
+        break;
         
       case 'getStats':
         const statsQueryOptions = message.windowId ? { windowId: message.windowId } : {};

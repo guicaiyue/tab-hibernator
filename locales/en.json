@@ -32,5 +32,6 @@
   "chinese": "中文",
   "english": "English",
   "languageChanged": "Language changed",
-  "pluginSettings": "Plugin Settings"
+  "pluginSettings": "Plugin Settings",
+  "autoHibernatedTabs": "Auto-hibernated {count} pages"
 }
