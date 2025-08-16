@@ -25,6 +25,7 @@ const translations = {
     "loadStatsFailed": "加载统计信息失败",
     "hibernateTab": "休眠标签页",
     "closeTab": "关闭标签页",
+    "cannotCloseSystemPage": "无法关闭系统页面",
     "active": "活跃",
     "hibernated": "已休眠",
     "audible": "播放中",
@@ -38,7 +39,7 @@ const translations = {
     "selectLanguage": "选择语言",
     "chinese": "中文",
     "english": "English",
-    "languageChanged": "语言已切换",
+    "languageChanged": "配置已更新",
     "pluginSettings": "插件设置",
     "loadWindowsListFailed": "加载窗口列表失败",
     "hibernationDelay": "休眠延迟 (分钟)",
@@ -51,7 +52,8 @@ const translations = {
     "helpTitle": "❓ 使用帮助",
     "helpContent": "🛌 浏览器休眠控制插件使用说明：\n\n• 自动休眠：标签页超过设定时间未活动将自动休眠\n• 手动休眠：点击💤图标可手动休眠单个标签页\n• 批量休眠：鼠标悬停在统计区域的💤图标上可休眠所有活动标签页\n• 白名单：在设置中添加域名可防止特定网站被休眠\n• 智能过滤：自动排除活动、固定、有声标签页\n\n💡 提示：休眠的标签页会释放内存，重新点击时会自动恢复",
     "close": "关闭",
-    "saveSettingsFailed": "保存设置失败"
+    "saveSettingsFailed": "保存设置失败",
+    "lastAccessedTime": "最后访问时间"
   },
   en: {
     "extName": "Tab Hibernator",
@@ -68,6 +70,7 @@ const translations = {
     "loadStatsFailed": "Failed to load statistics",
     "hibernateTab": "Hibernate tab",
     "closeTab": "Close tab",
+    "cannotCloseSystemPage": "Cannot close system page",
     "active": "Active",
     "hibernated": "Hibernated",
     "audible": "Playing",
@@ -81,7 +84,7 @@ const translations = {
     "selectLanguage": "Select Language",
     "chinese": "中文",
      "english": "English",
-     "languageChanged": "Language switched",
+     "languageChanged": "Settings updated",
      "pluginSettings": "Plugin Settings",
      "loadWindowsListFailed": "Failed to load windows list",
      "hibernationDelay": "Hibernation Delay (minutes)",
@@ -94,7 +97,8 @@ const translations = {
     "helpTitle": "❓ Help",
     "helpContent": "🛌 Browser Tab Hibernator Usage Guide:\n\n• Auto Hibernation: Tabs will automatically hibernate after being inactive for the set time\n• Manual Hibernation: Click the 💤 icon to manually hibernate individual tabs\n• Batch Hibernation: Hover over the 💤 icon in the stats area to hibernate all active tabs\n• Whitelist: Add domains in settings to prevent specific websites from being hibernated\n• Smart Filtering: Automatically excludes active, pinned, and audible tabs\n\n💡 Tip: Hibernated tabs will free up memory and automatically restore when clicked",
     "close": "Close",
-    "saveSettingsFailed": "Failed to save settings"
+    "saveSettingsFailed": "Failed to save settings",
+    "lastAccessedTime": "Last Accessed Time"
   }
 };
 
@@ -343,9 +347,8 @@ async function loadWindowsList() {
          // 滚动到选中的标签页
          scrollToActiveTab();
          
-         // 更新统计信息和标签页列表
+         // 更新统计信息，标签页列表会通过事件驱动自动更新
          loadStats();
-         debouncedLoadTabsList();
        }
      });
     
@@ -402,96 +405,83 @@ async function loadTabsList() {
     const queryOptions = currentWindowId ? { windowId: currentWindowId } : {};
     const allTabs = await browser.tabs.query(queryOptions);
     
-    // 检查浏览器是否支持标签页分组API
-    if (!browser.tabGroups) {
-      throw new Error('标签页分组API不支持');
-    }
-    
-    const groups = await browser.tabGroups.query({});
-    
-    // 过滤掉无效的标签页（减少调试日志）
+    // 过滤掉无效的标签页
     const tabs = allTabs.filter(tab => {
       // 排除title和url都为空的异常标签页
       return tab.title || tab.url;
     });
     
     const tabsList = document.getElementById('tabsList');
-    
-    // 使用DocumentFragment提高性能
     const fragment = document.createDocumentFragment();
     
-    // 创建分组映射
-    const groupMap = new Map();
-    groups.forEach(group => {
-      groupMap.set(group.id, group);
-    });
-    
-    // 按分组整理标签页
-    const groupedTabs = new Map();
-    const ungroupedTabs = [];
-    
-    tabs.forEach(tab => {
-      if (tab.groupId && tab.groupId !== -1) {
-        if (!groupedTabs.has(tab.groupId)) {
-          groupedTabs.set(tab.groupId, []);
+    // 检查浏览器是否支持标签页分组API
+    if (browser.tabGroups) {
+      try {
+        const groups = await browser.tabGroups.query({});
+        
+        // 创建分组映射
+        const groupMap = new Map();
+        groups.forEach(group => {
+          groupMap.set(group.id, group);
+        });
+        
+        // 按分组整理标签页
+        const groupedTabs = new Map();
+        const ungroupedTabs = [];
+        
+        tabs.forEach(tab => {
+          if (tab.groupId && tab.groupId !== -1) {
+            if (!groupedTabs.has(tab.groupId)) {
+              groupedTabs.set(tab.groupId, []);
+            }
+            groupedTabs.get(tab.groupId).push(tab);
+          } else {
+            ungroupedTabs.push(tab);
+          }
+        });
+        
+        // 渲染分组标签页到fragment
+        for (const [groupId, groupTabs] of groupedTabs) {
+          const group = groupMap.get(groupId);
+          const groupElement = createTabGroup(group, groupTabs);
+          fragment.appendChild(groupElement);
         }
-        groupedTabs.get(tab.groupId).push(tab);
-      } else {
-        ungroupedTabs.push(tab);
+        
+        // 渲染未分组标签页到fragment
+        if (ungroupedTabs.length > 0) {
+          const ungroupedElement = createTabGroup(null, ungroupedTabs);
+          fragment.appendChild(ungroupedElement);
+        }
+      } catch (groupError) {
+        console.log('标签页分组查询失败，使用简单模式:', groupError);
+        // 分组查询失败时，直接渲染所有标签页
+        renderTabsWithoutGroups(tabs, fragment);
       }
-    });
-    
-    // 渲染分组标签页到fragment
-    for (const [groupId, groupTabs] of groupedTabs) {
-      const group = groupMap.get(groupId);
-      const groupElement = createTabGroup(group, groupTabs);
-      fragment.appendChild(groupElement);
-    }
-    
-    // 渲染未分组标签页到fragment
-    if (ungroupedTabs.length > 0) {
-      const ungroupedElement = createTabGroup(null, ungroupedTabs);
-      fragment.appendChild(ungroupedElement);
+    } else {
+      console.log('浏览器不支持标签页分组API，使用简单模式');
+      // 浏览器不支持分组时，直接渲染所有标签页
+      renderTabsWithoutGroups(tabs, fragment);
     }
     
     // 一次性更新DOM
     tabsList.innerHTML = '';
     tabsList.appendChild(fragment);
+    
+    // 滚动到当前活跃标签页
+    setTimeout(() => {
+      scrollToActiveTabItem();
+    }, 100);
   } catch (error) {
-    console.log('标签页分组API不支持，使用回退方式:', error);
-    // 如果浏览器不支持标签页分组，回退到原始方式
-    try {
-      const queryOptions = currentWindowId ? { windowId: currentWindowId } : {};
-      const allTabs = await browser.tabs.query(queryOptions);
-      console.log('回退模式 - 所有标签页:', allTabs);
-      
-      // 在回退模式中也应用相同的过滤逻辑
-      const tabs = allTabs.filter(tab => {
-        // 排除title和url都为空的异常标签页
-        return tab.title || tab.url;
-      });
-      
-      const tabsList = document.getElementById('tabsList');
-      const fragment = document.createDocumentFragment();
-      
-      // 使用DocumentFragment提高性能
-      for (const tab of tabs) {
-        const tabItem = createTabItem(tab);
-        fragment.appendChild(tabItem);
-      }
-      
-      // 一次性更新DOM
-      tabsList.innerHTML = '';
-      tabsList.appendChild(fragment);
-      
-      // 滚动到当前活跃标签页
-      setTimeout(() => {
-        scrollToActiveTabItem();
-      }, 100);
-    } catch (fallbackError) {
-      console.error('回退模式也失败:', fallbackError);
-      showMessage('加载标签页列表失败', 'error');
-    }
+    console.error('加载标签页列表失败:', error);
+    showMessage('加载标签页列表失败', 'error');
+  }
+}
+
+// 渲染不分组的标签页
+function renderTabsWithoutGroups(tabs, fragment) {
+  for (const tab of tabs) {
+    const tabItem = createTabItem(tab);
+    fragment.appendChild(tabItem);
   }
 }
 
@@ -629,6 +619,12 @@ function createTabItem(tab) {
   const tabItem = document.createElement('div');
   tabItem.className = 'tab-item';
   
+  // 添加lastAccessed时间信息到title属性
+  if (tab.lastAccessed) {
+    const lastAccessedDate = new Date(tab.lastAccessed);
+    tabItem.title = `${dynamicT('lastAccessedTime')}: ${lastAccessedDate.toLocaleString()}`;
+  }
+  
   // 获取标签页状态
   const isActive = tab.active;
   const isHibernated = tab.discarded;
@@ -713,11 +709,7 @@ function createTabItem(tab) {
   tabActions.appendChild(hibernateBtn);
   
   // 检查是否可以关闭标签页
-  const canClose = !isActive && 
-    !tab.url.startsWith('chrome-extension://') && 
-    !tab.url.startsWith('chrome://') && 
-    !tab.url.startsWith('edge://') && 
-    !tab.url.startsWith('about:');
+  const canClose = !isActive
     
   if (canClose) {
     const closeBtn = document.createElement('button');
@@ -741,7 +733,7 @@ async function hibernateTab(tabId) {
   try {
     await browser.tabs.discard(tabId);
     loadStats();
-    debouncedLoadTabsList();
+    // 标签页变化会通过事件驱动自动更新列表
   } catch (error) {
     showMessage('休眠标签页失败', 'error');
   }
@@ -757,15 +749,21 @@ async function closeTab(tabId) {
     if (tab.url.startsWith('chrome-extension://') || 
         tab.url.startsWith('chrome://') || 
         tab.url.startsWith('edge://') || 
-        tab.url.startsWith('about:')) {
-      showMessage('无法关闭系统页面', 'error');
+        tab.url.startsWith('about:') ||
+        tab.url.startsWith('moz-extension://') ||
+        tab.url.startsWith('extension://') ||
+        tab.url === 'chrome://newtab/' ||
+        tab.url === 'edge://newtab/' ||
+        tab.url === 'about:newtab' ||
+        tab.url === 'about:blank') {
+      showMessage(dynamicT('cannotCloseSystemPage'), 'error');
       return;
     }
     
     await browser.tabs.remove(tabId);
     showMessage('标签页已关闭', 'success');
     loadStats();
-    debouncedLoadTabsList();
+    // 标签页变化会通过事件驱动自动更新列表
   } catch (error) {
     console.error('关闭标签页错误:', error);
     if (error.message && error.message.includes('Cannot close the only remaining tab')) {
@@ -792,8 +790,33 @@ document.addEventListener('DOMContentLoaded', async function() {
   document.getElementById('settingsBtn').addEventListener('click', showSettingsDialog);
   document.getElementById('helpBtn').addEventListener('click', showHelpDialog);
   
+  // 添加测试按钮（临时调试用）
+  const testBtn = document.createElement('button');
+  testBtn.textContent = '测试休眠';
+  testBtn.style.cssText = 'margin: 10px; padding: 5px 10px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 4px; cursor: pointer;';
+  testBtn.onclick = async () => {
+    console.log('Triggering hibernation test...');
+    try {
+      const result = await browser.runtime.sendMessage({ action: 'testHibernation' });
+      console.log('Test result:', result);
+      showMessage('休眠测试已触发，请查看浏览器控制台', 'info');
+    } catch (error) {
+      console.error('Test failed:', error);
+    }
+  };
+  document.body.appendChild(testBtn);
+  
   // 绑定休眠图标的鼠标悬停事件
   setupHibernateIconHover();
+  
+  // 监听来自background的标签页变化消息
+  browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.action === 'tabsChanged') {
+      // 使用防抖的方式更新标签页列表和统计信息
+      debouncedLoadTabsList();
+      loadStats();
+    }
+  });
 });
 
 // 设置休眠图标的悬停效果
@@ -853,9 +876,7 @@ async function hibernateAllActiveTabs() {
       showMessage('没有可休眠的活动标签页', 'info');
     }
     
-    // 刷新统计和列表
-    loadStats();
-    debouncedLoadTabsList();
+    // 统计信息和列表会通过事件驱动自动更新
   } catch (error) {
     console.error('休眠活动标签页失败:', error);
     showMessage('休眠失败', 'error');

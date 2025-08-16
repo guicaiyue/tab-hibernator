@@ -19,6 +19,69 @@ export default defineBackground(() => {
   // 白名单域名
   const whitelist = new Set<string>();
   
+  // 初始化设置
+  async function initializeSettings() {
+    try {
+      const result = await browser.storage.local.get(['hibernationDelay', 'whitelist']);
+      
+      if (result.hibernationDelay !== undefined) {
+        hibernationDelay = result.hibernationDelay;
+        console.log('Loaded hibernation delay from storage:', hibernationDelay, 'ms =', Math.round(hibernationDelay/60000), 'minutes');
+        debugLog('Loaded hibernation delay:', hibernationDelay);
+      } else {
+        console.log('No hibernation delay found in storage, using default:', hibernationDelay);
+      }
+      
+      if (result.whitelist && Array.isArray(result.whitelist)) {
+        whitelist.clear();
+        result.whitelist.forEach((domain: string) => whitelist.add(domain));
+        debugLog('Loaded whitelist:', Array.from(whitelist));
+      }
+    } catch (error) {
+      console.error('Failed to load settings:', error);
+    }
+  }
+  
+  // 保存设置到存储
+  async function saveSettings() {
+    try {
+      await browser.storage.local.set({
+        hibernationDelay: hibernationDelay,
+        whitelist: Array.from(whitelist)
+      });
+      debugLog('Settings saved successfully');
+    } catch (error) {
+      console.error('Failed to save settings:', error);
+    }
+  }
+  
+  // 启动时初始化设置
+  initializeSettings();
+  
+  console.log('Extension background script loaded successfully!');
+  console.log('Initial hibernationDelay:', hibernationDelay);
+
+  // 通知popup标签页发生变化
+  function notifyPopupTabsChanged(eventType: string, tabId?: number, group?: any, changeInfo?: any) {
+    // 防抖处理，避免频繁更新
+    clearTimeout(notifyTimeout);
+    notifyTimeout = setTimeout(() => {
+      // 向所有popup发送消息
+      browser.runtime.sendMessage({
+        action: 'tabsChanged',
+        eventType,
+        tabId,
+        group,
+        changeInfo
+      }).catch(() => {
+        // 忽略没有popup监听的错误
+      });
+    }, 100);
+  }
+
+  // 防抖定时器
+  let notifyTimeout: NodeJS.Timeout;
+  
   // 监听标签页激活事件
   browser.tabs.onActivated.addListener(async (activeInfo) => {
     const { tabId } = activeInfo;
@@ -33,6 +96,9 @@ export default defineBackground(() => {
     } catch (error) {
       console.error('Error handling tab activation:', error);
     }
+    
+    // 通知popup标签页已激活
+    notifyPopupTabsChanged('activated', tabId);
   });
   
   // 监听标签页更新事件
@@ -40,19 +106,71 @@ export default defineBackground(() => {
     if (changeInfo.status === 'complete' || changeInfo.url) {
       tabLastActivity.set(tabId, Date.now());
     }
+    // 通知popup标签页已更新
+    notifyPopupTabsChanged('updated', tabId, null, changeInfo);
   });
   
   // 监听标签页创建事件
   browser.tabs.onCreated.addListener((tab) => {
     if (tab.id) {
       tabLastActivity.set(tab.id, Date.now());
+      notifyPopupTabsChanged('created', tab.id);
     }
   });
   
   // 监听标签页移除事件
   browser.tabs.onRemoved.addListener((tabId) => {
     tabLastActivity.delete(tabId);
+    notifyPopupTabsChanged('removed', tabId);
   });
+
+  // 监听标签页移动事件
+  browser.tabs.onMoved.addListener((tabId, moveInfo) => {
+    tabLastActivity.set(tabId, Date.now());
+    notifyPopupTabsChanged('moved', tabId);
+  });
+
+  // 监听标签页附加事件（移动到其他窗口）
+  browser.tabs.onAttached.addListener((tabId, attachInfo) => {
+    tabLastActivity.set(tabId, Date.now());
+    notifyPopupTabsChanged('attached', tabId);
+  });
+
+  // 监听标签页分离事件（从窗口分离）
+  browser.tabs.onDetached.addListener((tabId, detachInfo) => {
+    notifyPopupTabsChanged('detached', tabId);
+  });
+
+  // 监听标签页分组事件（如果支持）
+  if (browser.tabGroups) {
+    // 监听标签页分组创建
+    if (browser.tabGroups.onCreated) {
+      browser.tabGroups.onCreated.addListener((group) => {
+        notifyPopupTabsChanged('groupCreated', null, group);
+      });
+    }
+
+    // 监听标签页分组更新
+    if (browser.tabGroups.onUpdated) {
+      browser.tabGroups.onUpdated.addListener((group) => {
+        notifyPopupTabsChanged('groupUpdated', null, group);
+      });
+    }
+
+    // 监听标签页分组移除
+    if (browser.tabGroups.onRemoved) {
+      browser.tabGroups.onRemoved.addListener((group) => {
+        notifyPopupTabsChanged('groupRemoved', null, group);
+      });
+    }
+
+    // 监听标签页分组移动
+    if (browser.tabGroups.onMoved) {
+      browser.tabGroups.onMoved.addListener((group) => {
+        notifyPopupTabsChanged('groupMoved', null, group);
+      });
+    }
+  }
   
   // 提取公共的基础检查逻辑
   function canHibernateTab(tab: browser.tabs.Tab): boolean {
@@ -86,11 +204,19 @@ export default defineBackground(() => {
     if (!canHibernateTab(tab)) return false;
     
     // 如果休眠延迟为-1，表示不开启自动休眠
-    if (hibernationDelay === -1) return false;
+    if (hibernationDelay === -1) {
+      debugLog('Auto hibernation disabled (hibernationDelay = -1)');
+      return false;
+    }
     
-    // 检查最后活动时间
-    const lastActivity = tabLastActivity.get(tab.id) || Date.now();
-    return Date.now() - lastActivity > hibernationDelay;
+    // 使用浏览器原生的lastAccessed时间，如果不存在则使用当前时间
+    const lastAccessed = tab.lastAccessed || Date.now();
+    const timeSinceLastAccess = Date.now() - lastAccessed;
+    const shouldHibernate = timeSinceLastAccess > hibernationDelay;
+    
+    debugLog(`Tab ${tab.id} (${tab.title?.substring(0, 30)}...): lastAccessed=${new Date(lastAccessed).toLocaleString()}, timeSince=${Math.round(timeSinceLastAccess/1000)}s, delay=${Math.round(hibernationDelay/1000)}s, shouldHibernate=${shouldHibernate}`);
+    
+    return shouldHibernate;
   }
   
 
@@ -108,23 +234,43 @@ export default defineBackground(() => {
   // 定期检查需要休眠的标签页
   async function checkForHibernation() {
     // 如果休眠延迟为-1，跳过检查
-    if (hibernationDelay === -1) return;
+    if (hibernationDelay === -1) {
+      debugLog('Skipping hibernation check - auto hibernation disabled');
+      return;
+    }
+    
+    debugLog(`Starting hibernation check with delay: ${hibernationDelay}ms (${Math.round(hibernationDelay/60000)} minutes)`);
     
     try {
       const tabs = await browser.tabs.query({});
+      debugLog(`Checking ${tabs.length} tabs for hibernation`);
       
+      let hibernatedCount = 0;
       for (const tab of tabs) {
         if (shouldHibernateTab(tab) && tab.id) {
           await hibernateTab(tab.id);
+          hibernatedCount++;
         }
       }
+      
+      debugLog(`Hibernation check completed. Hibernated ${hibernatedCount} tabs.`);
     } catch (error) {
       console.error('Error during hibernation check:', error);
     }
   }
   
   // 每分钟检查一次
-  setInterval(checkForHibernation, 60 * 1000);
+  console.log('Setting up hibernation check interval (60 seconds)');
+  setInterval(() => {
+    console.log('Hibernation check interval triggered at:', new Date().toLocaleString());
+    checkForHibernation();
+  }, 60 * 1000);
+  
+  // 立即执行一次检查（用于测试）
+  setTimeout(() => {
+    console.log('Initial hibernation check after 5 seconds');
+    checkForHibernation();
+  }, 5000);
   
   // 监听来自popup的消息
   browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -141,13 +287,17 @@ export default defineBackground(() => {
         
       case 'updateSettings':
         if (message.settings) {
-          if (message.settings.hibernationDelay) {
+          if (message.settings.hibernationDelay !== undefined) {
             hibernationDelay = message.settings.hibernationDelay;
+            debugLog('Updated hibernation delay:', hibernationDelay);
           }
           if (message.settings.whitelist) {
             whitelist.clear();
             message.settings.whitelist.forEach((domain: string) => whitelist.add(domain));
+            debugLog('Updated whitelist:', Array.from(whitelist));
           }
+          // 保存设置到存储
+          saveSettings();
         }
         sendResponse({ success: true });
         break;
@@ -159,6 +309,12 @@ export default defineBackground(() => {
         } else {
           sendResponse({ success: false });
         }
+        break;
+        
+      case 'testHibernation':
+        debugLog('Manual hibernation test triggered');
+        checkForHibernation();
+        sendResponse({ success: true });
         break;
         
 
