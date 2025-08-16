@@ -1,0 +1,114 @@
+{
+  "extName": {
+    "message": "Tab Hibernator Master",
+    "description": "Extension name"
+  },
+  "extDescription": {
+    "message": "Intelligently manage tab hibernation, automatically save memory and CPU resources, improve browser performance",
+    "description": "Extension description"
+  },
+  "popupTitle": {
+    "message": "Tab Hibernator Master",
+    "description": "Popup window title"
+  },
+  "totalTabs": {
+    "message": "Total Tabs",
+    "description": "Total tabs label"
+  },
+  "activeTabs": {
+    "message": "Active Tabs",
+    "description": "Active tabs label"
+  },
+  "hibernatedTabs": {
+    "message": "Hibernated Tabs",
+    "description": "Hibernated tabs label"
+  },
+  "memoryUsage": {
+    "message": "Memory Usage",
+    "description": "Memory usage label"
+  },
+  "hibernateAll": {
+    "message": "Hibernate All Tabs",
+    "description": "Hibernate all tabs button"
+  },
+  "wakeAll": {
+    "message": "Wake All Tabs",
+    "description": "Wake all tabs button"
+  },
+  "settings": {
+    "message": "Settings",
+    "description": "Settings button"
+  },
+  "help": {
+    "message": "Help",
+    "description": "Help button"
+  },
+  "autoHibernate": {
+    "message": "Auto Hibernate",
+    "description": "Auto hibernate setting"
+  },
+  "hibernateTime": {
+    "message": "Hibernate Time",
+    "description": "Hibernate time setting"
+  },
+  "minutes": {
+    "message": "minutes",
+    "description": "Minutes unit"
+  },
+  "excludeAudio": {
+    "message": "Exclude Audio Tabs",
+    "description": "Exclude audio tabs setting"
+  },
+  "excludePinned": {
+    "message": "Exclude Pinned Tabs",
+    "description": "Exclude pinned tabs setting"
+  },
+  "save": {
+    "message": "Save",
+    "description": "Save button"
+  },
+  "cancel": {
+    "message": "Cancel",
+    "description": "Cancel button"
+  },
+  "loadStatsFailed": {
+    "message": "Failed to load statistics",
+    "description": "Load stats failed message"
+  },
+  "memoryUsageTooltip": {
+    "message": "Physical memory used by all programs on current device",
+    "description": "Memory usage tooltip"
+  },
+  "memoryUnavailable": {
+    "message": "Unable to get system memory information",
+    "description": "Memory unavailable message"
+  },
+  "loadWindowsListFailed": {
+    "message": "Failed to load windows list",
+    "description": "Load windows list failed message"
+  },
+  "loadTabsListFailed": {
+    "message": "Failed to load tabs list",
+    "description": "Load tabs list failed message"
+  },
+  "allWindows": {
+    "message": "All",
+    "description": "All windows label"
+  },
+  "currentWindow": {
+    "message": "Current",
+    "description": "Current window label"
+  },
+  "showAllWindowsTabs": {
+    "message": "Show tabs from all windows",
+    "description": "Show all windows tabs tooltip"
+  },
+  "currentActiveWindow": {
+    "message": "Current active window",
+    "description": "Current active window tooltip"
+  },
+  "windowNumber": {
+    "message": "Window",
+    "description": "Window number prefix"
+  }
+}

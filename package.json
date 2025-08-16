@@ -18,11 +18,17 @@
     "dev:edge": "wxt -b edge",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["browser-extension", "tab-management", "memory-optimization", "hibernation"],
+  "keywords": [
+    "browser-extension",
+    "tab-management",
+    "memory-optimization",
+    "hibernation"
+  ],
   "author": "",
   "license": "CC-BY-NC-SA-4.0",
   "description": "A browser extension that automatically hibernates inactive tabs to save memory and CPU resources",
   "devDependencies": {
+    "@wxt-dev/i18n": "^0.2.4",
     "wxt": "^0.20.7"
   }
 }

@@ -1,0 +1,114 @@
+{
+  "extName": {
+    "message": "网页休眠大师",
+    "description": "Extension name"
+  },
+  "extDescription": {
+    "message": "智能管理标签页休眠，自动节省内存和CPU资源，提升浏览器性能",
+    "description": "Extension description"
+  },
+  "popupTitle": {
+    "message": "网页休眠大师",
+    "description": "Popup window title"
+  },
+  "totalTabs": {
+    "message": "总标签页",
+    "description": "Total tabs label"
+  },
+  "activeTabs": {
+    "message": "活跃标签页",
+    "description": "Active tabs label"
+  },
+  "hibernatedTabs": {
+    "message": "休眠标签页",
+    "description": "Hibernated tabs label"
+  },
+  "memoryUsage": {
+    "message": "内存使用",
+    "description": "Memory usage label"
+  },
+  "hibernateAll": {
+    "message": "休眠所有标签页",
+    "description": "Hibernate all tabs button"
+  },
+  "wakeAll": {
+    "message": "唤醒所有标签页",
+    "description": "Wake all tabs button"
+  },
+  "settings": {
+    "message": "设置",
+    "description": "Settings button"
+  },
+  "help": {
+    "message": "帮助",
+    "description": "Help button"
+  },
+  "autoHibernate": {
+    "message": "自动休眠",
+    "description": "Auto hibernate setting"
+  },
+  "hibernateTime": {
+    "message": "休眠时间",
+    "description": "Hibernate time setting"
+  },
+  "minutes": {
+    "message": "分钟",
+    "description": "Minutes unit"
+  },
+  "excludeAudio": {
+    "message": "排除音频标签页",
+    "description": "Exclude audio tabs setting"
+  },
+  "excludePinned": {
+    "message": "排除固定标签页",
+    "description": "Exclude pinned tabs setting"
+  },
+  "save": {
+    "message": "保存",
+    "description": "Save button"
+  },
+  "cancel": {
+    "message": "取消",
+    "description": "Cancel button"
+  },
+  "loadStatsFailed": {
+    "message": "加载统计失败",
+    "description": "Load stats failed message"
+  },
+  "memoryUsageTooltip": {
+    "message": "当前设备所有程序占用的物理内存",
+    "description": "Memory usage tooltip"
+  },
+  "memoryUnavailable": {
+    "message": "无法获取系统内存信息",
+    "description": "Memory unavailable message"
+  },
+  "loadWindowsListFailed": {
+    "message": "加载窗口列表失败",
+    "description": "Load windows list failed message"
+  },
+  "loadTabsListFailed": {
+    "message": "加载标签页列表失败",
+    "description": "Load tabs list failed message"
+  },
+  "allWindows": {
+    "message": "全部",
+    "description": "All windows label"
+  },
+  "currentWindow": {
+    "message": "当前",
+    "description": "Current window label"
+  },
+  "showAllWindowsTabs": {
+    "message": "显示所有窗口的标签页",
+    "description": "Show all windows tabs tooltip"
+  },
+  "currentActiveWindow": {
+    "message": "当前活动窗口",
+    "description": "Current active window tooltip"
+  },
+  "windowNumber": {
+    "message": "窗口",
+    "description": "Window number prefix"
+  }
+}

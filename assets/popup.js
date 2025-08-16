@@ -1,6 +1,153 @@
+import { i18n } from '#i18n';
+
 // 全局变量
 let currentWindowId = null;
 let allWindows = [];
+let currentLanguage = 'zh_CN'; // 默认语言
+
+// 初始化i18n
+const t = i18n.t;
+
+// 翻译数据
+const translations = {
+  zh_CN: {
+    "extName": "网页休眠大师",
+    "extDescription": "智能管理浏览器标签页，自动休眠不活跃标签页以节省内存和提升性能",
+    "popupTitle": "网页休眠大师",
+    "settings": "设置",
+    "help": "帮助",
+    "totalTabs": "当前窗口中所有标签页的总数量",
+    "activeTabs": "正在活跃使用的标签页",
+    "hibernatedTabs": "已经休眠的标签页",
+    "memoryUsage": "当前设备所有程序占用的物理内存",
+    "memoryUsageTooltip": "当前设备所有程序占用的物理内存",
+    "memoryUnavailable": "内存信息不可用",
+    "loadStatsFailed": "加载统计信息失败",
+    "hibernateTab": "休眠标签页",
+    "closeTab": "关闭标签页",
+    "active": "活跃",
+    "hibernated": "已休眠",
+    "audible": "播放中",
+    "showAllWindowsTabs": "显示所有窗口的标签页",
+    "allWindows": "所有窗口",
+    "currentActiveWindow": "当前活动窗口",
+    "windowNumber": "窗口",
+    "currentWindow": "当前窗口",
+    "getStatsError": "获取统计信息失败:",
+    "languageSettings": "语言设置",
+    "selectLanguage": "选择语言",
+    "chinese": "中文",
+    "english": "English",
+    "languageChanged": "语言已切换",
+    "pluginSettings": "插件设置",
+    "loadWindowsListFailed": "加载窗口列表失败",
+    "hibernationDelay": "休眠延迟 (分钟)",
+    "hibernationDelayHelp": "标签页不活动多长时间后自动休眠（-1表示不开启自动休眠）",
+    "whitelistDomains": "白名单域名",
+    "whitelistPlaceholder": "每行一个域名，例如：\ngithub.com\nstackoverflow.com\nyoutube.com",
+    "whitelistHelp": "这些域名的标签页不会被自动休眠",
+    "saveSettings": "保存设置",
+    "cancel": "取消",
+    "helpTitle": "❓ 使用帮助",
+    "helpContent": "🛌 浏览器休眠控制插件使用说明：\n\n• 自动休眠：标签页超过设定时间未活动将自动休眠\n• 手动休眠：点击💤图标可手动休眠单个标签页\n• 批量休眠：鼠标悬停在统计区域的💤图标上可休眠所有活动标签页\n• 白名单：在设置中添加域名可防止特定网站被休眠\n• 智能过滤：自动排除活动、固定、有声标签页\n\n💡 提示：休眠的标签页会释放内存，重新点击时会自动恢复",
+    "close": "关闭",
+    "saveSettingsFailed": "保存设置失败"
+  },
+  en: {
+    "extName": "Tab Hibernator",
+    "extDescription": "Intelligently manage browser tabs, automatically hibernate inactive tabs to save memory and improve performance",
+    "popupTitle": "Tab Hibernator",
+    "settings": "Settings",
+    "help": "Help",
+    "totalTabs": "Total number of tabs in current window",
+    "activeTabs": "Active tabs currently in use",
+    "hibernatedTabs": "Tabs that have been hibernated",
+    "memoryUsage": "Physical memory used by all programs on current device",
+    "memoryUsageTooltip": "Physical memory used by all programs on current device",
+    "memoryUnavailable": "Memory information unavailable",
+    "loadStatsFailed": "Failed to load statistics",
+    "hibernateTab": "Hibernate tab",
+    "closeTab": "Close tab",
+    "active": "Active",
+    "hibernated": "Hibernated",
+    "audible": "Playing",
+    "showAllWindowsTabs": "Show tabs from all windows",
+    "allWindows": "All Windows",
+    "currentActiveWindow": "Current active window",
+    "windowNumber": "Window",
+    "currentWindow": "Current",
+    "getStatsError": "Failed to get statistics:",
+    "languageSettings": "Language Settings",
+    "selectLanguage": "Select Language",
+    "chinese": "中文",
+     "english": "English",
+     "languageChanged": "Language switched",
+     "pluginSettings": "Plugin Settings",
+     "loadWindowsListFailed": "Failed to load windows list",
+     "hibernationDelay": "Hibernation Delay (minutes)",
+     "hibernationDelayHelp": "How long tabs remain inactive before auto-hibernation (-1 to disable auto-hibernation)",
+     "whitelistDomains": "Whitelist Domains",
+     "whitelistPlaceholder": "One domain per line, for example:\ngithub.com\nstackoverflow.com\nyoutube.com",
+     "whitelistHelp": "Tabs from these domains will not be auto-hibernated",
+     "saveSettings": "Save Settings",
+    "cancel": "Cancel",
+    "helpTitle": "❓ Help",
+    "helpContent": "🛌 Browser Tab Hibernator Usage Guide:\n\n• Auto Hibernation: Tabs will automatically hibernate after being inactive for the set time\n• Manual Hibernation: Click the 💤 icon to manually hibernate individual tabs\n• Batch Hibernation: Hover over the 💤 icon in the stats area to hibernate all active tabs\n• Whitelist: Add domains in settings to prevent specific websites from being hibernated\n• Smart Filtering: Automatically excludes active, pinned, and audible tabs\n\n💡 Tip: Hibernated tabs will free up memory and automatically restore when clicked",
+    "close": "Close",
+    "saveSettingsFailed": "Failed to save settings"
+  }
+};
+
+// 动态翻译函数
+function dynamicT(key) {
+  const langData = translations[currentLanguage] || translations['zh_CN'];
+  return langData[key] || key;
+}
+
+// 语言管理函数
+async function getCurrentLanguage() {
+  try {
+    const result = await browser.storage.local.get(['userLanguage']);
+    return result.userLanguage || 'zh_CN';
+  } catch (error) {
+    console.error('获取语言设置失败:', error);
+    return 'zh_CN';
+  }
+}
+
+async function saveLanguagePreference(language) {
+  try {
+    await browser.storage.local.set({ userLanguage: language });
+    currentLanguage = language;
+  } catch (error) {
+    console.error('保存语言设置失败:', error);
+  }
+}
+
+async function updateUILanguage() {
+  // 更新所有带有data-i18n属性的元素
+  const elements = document.querySelectorAll('[data-i18n]');
+  elements.forEach(element => {
+    const key = element.getAttribute('data-i18n');
+    if (key) {
+      element.textContent = dynamicT(key);
+    }
+  });
+  
+  // 更新所有带有data-i18n-title属性的元素
+  const titleElements = document.querySelectorAll('[data-i18n-title]');
+  titleElements.forEach(element => {
+    const key = element.getAttribute('data-i18n-title');
+    if (key) {
+      element.title = dynamicT(key);
+    }
+  });
+  
+  // 重新加载窗口列表、统计信息和标签页列表以应用新语言
+  await loadWindowsList();
+  await loadStats();
+  await loadTabsList();
+}
 
 // 防抖函数
 function debounce(func, wait) {
@@ -63,13 +210,13 @@ async function loadStats() {
       // 设置系统内存提示信息
       const memoryItem = document.getElementById('memoryItem');
       if (result.stats.isMemoryAccurate) {
-        memoryItem.title = '当前设备所有程序占用的物理内存';
+        memoryItem.title = dynamicT('memoryUsageTooltip');
       } else {
-        memoryItem.title = '无法获取系统内存信息';
+        memoryItem.title = dynamicT('memoryUnavailable');
       }
     }
   } catch (error) {
-    showMessage('加载统计失败', 'error');
+    showMessage(dynamicT('loadStatsFailed'), 'error');
   }
 }
 
@@ -133,10 +280,10 @@ async function loadWindowsList() {
     const allTab = document.createElement('div');
     allTab.className = 'window-tab';
     allTab.dataset.windowId = 'all';
-    allTab.title = '显示所有窗口的标签页';
+    allTab.title = dynamicT('showAllWindowsTabs');
     allTab.appendChild(createWindowIcon('all'));
     const allText = document.createElement('span');
-    allText.textContent = `全部 (${filteredWindows.length})`;
+    allText.textContent = `${dynamicT('allWindows')} (${filteredWindows.length})`;
     allTab.appendChild(allText);
     windowTabs.appendChild(allTab);
     
@@ -145,13 +292,13 @@ async function loadWindowsList() {
       const tab = document.createElement('div');
       tab.className = 'window-tab';
       tab.dataset.windowId = window.id;
-      tab.title = window.id === currentWindowId ? '当前活动窗口' : `窗口 ${index + 1}`;
+      tab.title = window.id === currentWindowId ? dynamicT('currentActiveWindow') : `${dynamicT('windowNumber')} ${index + 1}`;
       
       const iconType = window.id === currentWindowId ? 'current' : 'single';
       tab.appendChild(createWindowIcon(iconType));
       
       const text = document.createElement('span');
-      text.textContent = window.id === currentWindowId ? '当前' : `${index + 1}`;
+      text.textContent = window.id === currentWindowId ? dynamicT('currentWindow') : `${index + 1}`;
       tab.appendChild(text);
       
       if (window.id === currentWindowId) {
@@ -204,7 +351,7 @@ async function loadWindowsList() {
     
   } catch (error) {
     console.error('加载窗口列表失败:', error);
-    showMessage('加载窗口列表失败', 'error');
+    showMessage(dynamicT('loadWindowsListFailed'), 'error');
   }
 }
 
@@ -633,6 +780,10 @@ async function closeTab(tabId) {
 
 // 页面加载完成后的初始化
 document.addEventListener('DOMContentLoaded', async function() {
+  // 初始化语言设置
+  currentLanguage = await getCurrentLanguage();
+  await updateUILanguage();
+  
   await loadWindowsList(); // 先加载窗口列表，设置currentWindowId
   loadStats(); // 然后加载统计信息
   loadTabsList(); // 最后加载标签页列表
@@ -733,26 +884,84 @@ function showSettingsDialog() {
   settingsContent.style.cssText = `
     background: white;
     border-radius: 12px;
-    padding: 24px;
     max-width: 380px;
     width: 85%;
     margin: 0 20px;
-    max-height: 500px;
-    overflow-y: auto;
+    max-height: 90vh;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
     position: relative;
+    display: flex;
+    flex-direction: column;
+  `;
+  
+  // 创建内容滚动区域
+  const scrollableContent = document.createElement('div');
+  scrollableContent.style.cssText = `
+    padding: 24px;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+  `;
+  
+  // 创建固定按钮区域
+  const fixedButtonArea = document.createElement('div');
+  fixedButtonArea.style.cssText = `
+    padding: 16px 24px;
+    border-top: 1px solid #e5e7eb;
+    background: white;
+    border-radius: 0 0 12px 12px;
+    flex-shrink: 0;
   `;
   
   const settingsTitle = document.createElement('h3');
-  settingsTitle.textContent = '⚙️ 插件设置';
+  settingsTitle.textContent = `⚙️ ${dynamicT('pluginSettings')}`;
   settingsTitle.style.cssText = 'margin: 0 0 20px 0; color: #333; font-size: 18px;';
+  
+  // 语言设置
+  const languageGroup = document.createElement('div');
+  languageGroup.style.cssText = 'margin-bottom: 20px;';
+  
+  const languageLabel = document.createElement('label');
+  languageLabel.textContent = `${dynamicT('languageSettings')}:`;
+  languageLabel.style.cssText = 'display: block; margin-bottom: 8px; font-weight: 500; color: #333;';
+  
+  const languageSelect = document.createElement('select');
+  languageSelect.id = 'languageSelect';
+  languageSelect.style.cssText = `
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    box-sizing: border-box;
+    background: white;
+  `;
+  
+  // 添加语言选项
+  const zhOption = document.createElement('option');
+  zhOption.value = 'zh_CN';
+  zhOption.textContent = dynamicT('chinese');
+  languageSelect.appendChild(zhOption);
+  
+  const enOption = document.createElement('option');
+  enOption.value = 'en';
+  enOption.textContent = dynamicT('english');
+  languageSelect.appendChild(enOption);
+  
+  const languageHelp = document.createElement('div');
+  languageHelp.textContent = dynamicT('selectLanguage');
+  languageHelp.style.cssText = 'font-size: 12px; color: #666; margin-top: 4px;';
+  
+  languageGroup.appendChild(languageLabel);
+  languageGroup.appendChild(languageSelect);
+  languageGroup.appendChild(languageHelp);
   
   // 休眠延迟设置
   const delayGroup = document.createElement('div');
   delayGroup.style.cssText = 'margin-bottom: 20px;';
   
   const delayLabel = document.createElement('label');
-  delayLabel.textContent = '休眠延迟 (分钟):';
+  delayLabel.textContent = `${dynamicT('hibernationDelay')}:`;
   delayLabel.style.cssText = 'display: block; margin-bottom: 8px; font-weight: 500; color: #333;';
   
   const delayInput = document.createElement('input');
@@ -771,7 +980,7 @@ function showSettingsDialog() {
   `;
   
   const delayHelp = document.createElement('div');
-  delayHelp.textContent = '标签页不活动多长时间后自动休眠（-1表示不开启自动休眠）';
+  delayHelp.textContent = dynamicT('hibernationDelayHelp');
   delayHelp.style.cssText = 'font-size: 12px; color: #666; margin-top: 4px;';
   
   delayGroup.appendChild(delayLabel);
@@ -783,12 +992,12 @@ function showSettingsDialog() {
   whitelistGroup.style.cssText = 'margin-bottom: 24px;';
   
   const whitelistLabel = document.createElement('label');
-  whitelistLabel.textContent = '白名单域名:';
+  whitelistLabel.textContent = `${dynamicT('whitelistDomains')}:`;
   whitelistLabel.style.cssText = 'display: block; margin-bottom: 8px; font-weight: 500; color: #333;';
   
   const whitelistTextarea = document.createElement('textarea');
   whitelistTextarea.id = 'whitelistDialog';
-  whitelistTextarea.placeholder = '每行一个域名，例如：\ngithub.com\nstackoverflow.com\nyoutube.com';
+  whitelistTextarea.placeholder = dynamicT('whitelistPlaceholder');
   whitelistTextarea.style.cssText = `
     width: 100%;
     height: 120px;
@@ -802,7 +1011,7 @@ function showSettingsDialog() {
   `;
   
   const whitelistHelp = document.createElement('div');
-  whitelistHelp.textContent = '这些域名的标签页不会被自动休眠';
+  whitelistHelp.textContent = dynamicT('whitelistHelp');
   whitelistHelp.style.cssText = 'font-size: 12px; color: #666; margin-top: 4px;';
   
   whitelistGroup.appendChild(whitelistLabel);
@@ -814,7 +1023,7 @@ function showSettingsDialog() {
   buttonGroup.style.cssText = 'display: flex; gap: 12px; justify-content: flex-end;';
   
   const saveBtn = document.createElement('button');
-  saveBtn.textContent = '保存设置';
+  saveBtn.textContent = dynamicT('saveSettings');
   saveBtn.style.cssText = `
     background: #3b82f6;
     color: white;
@@ -828,7 +1037,7 @@ function showSettingsDialog() {
   `;
   
   const cancelBtn = document.createElement('button');
-  cancelBtn.textContent = '取消';
+  cancelBtn.textContent = dynamicT('cancel');
   cancelBtn.style.cssText = `
     background: #6b7280;
     color: white;
@@ -860,10 +1069,10 @@ function showSettingsDialog() {
   `;
   
   // 加载当前设置
-  loadSettingsToDialog(delayInput, whitelistTextarea);
+  loadSettingsToDialog(delayInput, whitelistTextarea, languageSelect);
   
   // 事件处理
-  saveBtn.onclick = () => saveSettingsFromDialog(delayInput, whitelistTextarea, settingsDialog);
+  saveBtn.onclick = () => saveSettingsFromDialog(delayInput, whitelistTextarea, languageSelect, settingsDialog);
   cancelBtn.onclick = () => document.body.removeChild(settingsDialog);
   closeBtn.onclick = () => document.body.removeChild(settingsDialog);
   settingsDialog.onclick = (e) => {
@@ -881,17 +1090,25 @@ function showSettingsDialog() {
   buttonGroup.appendChild(cancelBtn);
   buttonGroup.appendChild(saveBtn);
   
-  settingsContent.appendChild(settingsTitle);
-  settingsContent.appendChild(delayGroup);
-  settingsContent.appendChild(whitelistGroup);
-  settingsContent.appendChild(buttonGroup);
+  // 将内容添加到滚动区域
+  scrollableContent.appendChild(settingsTitle);
+  scrollableContent.appendChild(languageGroup);
+  scrollableContent.appendChild(delayGroup);
+  scrollableContent.appendChild(whitelistGroup);
+  
+  // 将按钮添加到固定区域
+  fixedButtonArea.appendChild(buttonGroup);
+  
+  // 组装弹窗
+  settingsContent.appendChild(scrollableContent);
+  settingsContent.appendChild(fixedButtonArea);
   settingsContent.appendChild(closeBtn);
   settingsDialog.appendChild(settingsContent);
   document.body.appendChild(settingsDialog);
 }
 
 // 加载设置到对话框
-async function loadSettingsToDialog(delayInput, whitelistTextarea) {
+async function loadSettingsToDialog(delayInput, whitelistTextarea, languageSelect) {
   try {
     const result = await browser.runtime.sendMessage({ action: 'getSettings' });
     if (result.success) {
@@ -903,13 +1120,17 @@ async function loadSettingsToDialog(delayInput, whitelistTextarea) {
       }
       whitelistTextarea.value = result.settings.whitelist.join('\n');
     }
+    
+    // 加载当前语言设置
+    const currentLanguage = await getCurrentLanguage();
+    languageSelect.value = currentLanguage;
   } catch (error) {
     console.error('加载设置失败:', error);
   }
 }
 
 // 从对话框保存设置
-async function saveSettingsFromDialog(delayInput, whitelistTextarea, dialog) {
+async function saveSettingsFromDialog(delayInput, whitelistTextarea, languageSelect, dialog) {
   try {
     const inputValue = parseInt(delayInput.value);
     // 如果输入值为-1，直接保存-1，否则转换为毫秒
@@ -926,31 +1147,28 @@ async function saveSettingsFromDialog(delayInput, whitelistTextarea, dialog) {
       }
     });
     
+    // 保存语言设置
+    const selectedLanguage = languageSelect.value;
+    await saveLanguagePreference(selectedLanguage);
+    
     if (result.success) {
-      showMessage('设置已保存');
+      showMessage(dynamicT('languageChanged'));
       document.body.removeChild(dialog);
+      
+      // 重新加载界面以应用新语言
+      await updateUILanguage();
       loadStats(); // 刷新统计信息
     } else {
-      showMessage('保存设置失败', 'error');
+      showMessage(dynamicT('saveSettingsFailed'), 'error');
     }
   } catch (error) {
-    showMessage('保存设置失败', 'error');
+    showMessage(dynamicT('saveSettingsFailed'), 'error');
   }
 }
 
 // 显示帮助对话框
 function showHelpDialog() {
-  const helpText = `
-🛌 浏览器休眠控制插件使用说明：
-
-• 自动休眠：标签页超过设定时间未活动将自动休眠
-• 手动休眠：点击💤图标可手动休眠单个标签页
-• 批量休眠：鼠标悬停在统计区域的💤图标上可休眠所有活动标签页
-• 白名单：在设置中添加域名可防止特定网站被休眠
-• 智能过滤：自动排除活动、固定、有声标签页
-
-💡 提示：休眠的标签页会释放内存，重新点击时会自动恢复
-  `;
+  const helpText = dynamicT('helpContent');
   
   // 创建帮助弹窗
   const helpDialog = document.createElement('div');
@@ -972,16 +1190,27 @@ function showHelpDialog() {
   helpContent.style.cssText = `
     background: white;
     border-radius: 12px;
-    padding: 24px;
     max-width: 350px;
-    max-height: 400px;
-    overflow-y: auto;
+    width: 85%;
+    margin: 0 20px;
+    max-height: 80vh;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
     position: relative;
+    display: flex;
+    flex-direction: column;
+  `;
+  
+  // 创建帮助内容滚动区域
+  const helpScrollableContent = document.createElement('div');
+  helpScrollableContent.style.cssText = `
+    padding: 24px;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
   `;
   
   const helpTitle = document.createElement('h3');
-  helpTitle.textContent = '❓ 使用帮助';
+  helpTitle.textContent = dynamicT('helpTitle');
   helpTitle.style.cssText = 'margin: 0 0 16px 0; color: #333; font-size: 16px;';
   
   const helpBody = document.createElement('pre');
@@ -996,7 +1225,7 @@ function showHelpDialog() {
   `;
   
   const closeBtn = document.createElement('button');
-  closeBtn.textContent = '关闭';
+  closeBtn.textContent = dynamicT('close');
   closeBtn.style.cssText = `
     position: absolute;
     top: 12px;
@@ -1007,6 +1236,7 @@ function showHelpDialog() {
     padding: 6px 12px;
     cursor: pointer;
     font-size: 12px;
+    z-index: 1;
   `;
   
   closeBtn.onclick = () => document.body.removeChild(helpDialog);
@@ -1016,8 +1246,12 @@ function showHelpDialog() {
     }
   };
   
-  helpContent.appendChild(helpTitle);
-  helpContent.appendChild(helpBody);
+  // 将内容添加到滚动区域
+  helpScrollableContent.appendChild(helpTitle);
+  helpScrollableContent.appendChild(helpBody);
+  
+  // 组装帮助弹窗
+  helpContent.appendChild(helpScrollableContent);
   helpContent.appendChild(closeBtn);
   helpDialog.appendChild(helpContent);
   document.body.appendChild(helpDialog);

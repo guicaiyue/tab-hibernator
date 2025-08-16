@@ -1,11 +1,13 @@
 import { defineConfig } from 'wxt';
 
 export default defineConfig({
+  modules: ['@wxt-dev/i18n/module'],
   manifest: ({ browser }) => {
     const baseManifest = {
-      name: '网页休眠大师',
-      description: '智能管理标签页休眠，自动节省内存和CPU资源，提升浏览器性能',
+      name: '__MSG_extName__',
+      description: '__MSG_extDescription__',
       version: '0.0.1',
+      default_locale: 'en',
       permissions: [
         'tabs',
         'storage',

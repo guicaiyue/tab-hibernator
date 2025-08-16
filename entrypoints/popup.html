@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>网页休眠大师</title>
+  <title data-i18n="popupTitle">网页休眠大师</title>
   <style>
     body {
       width: 400px;
@@ -377,7 +377,7 @@
     }
     
     .tabs-list {
-      max-height: 450px;
+      min-height: 350px;
       max-height: 450px;
       overflow-y: auto;
     }
@@ -627,12 +627,12 @@
 </head>
 <body>
   <div class="header">
-    <h1>🛌网页休眠大师</h1>
+    <h1>🛌<span data-i18n="popupTitle">网页休眠大师</span></h1>
     <div class="header-actions">
-      <button class="header-btn" id="settingsBtn" title="设置">
+      <button class="header-btn" id="settingsBtn" data-i18n-title="settings" title="设置">
         ⚙️
       </button>
-      <button class="header-btn" id="helpBtn" title="帮助">
+      <button class="header-btn" id="helpBtn" data-i18n-title="help" title="帮助">
         ❓
       </button>
     </div>
@@ -641,19 +641,19 @@
   <div id="status" class="status hidden"></div>
   
   <div class="stats">
-    <div class="stat-item" title="当前窗口中所有标签页的总数量">
+    <div class="stat-item" data-i18n-title="totalTabs" title="当前窗口中所有标签页的总数量">
       <span class="stat-icon">📊</span>
       <span class="stat-value" id="totalTabs">-</span>
     </div>
-    <div class="stat-item" title="正在活跃使用的标签页">
+    <div class="stat-item" data-i18n-title="activeTabs" title="正在活跃使用的标签页">
       <span class="stat-icon">🔥</span>
       <span class="stat-value" id="activeTabs">-</span>
     </div>
-    <div class="stat-item" id="hibernateItem" title="已经休眠的标签页">
+    <div class="stat-item" id="hibernateItem" data-i18n-title="hibernatedTabs" title="已经休眠的标签页">
       <span class="stat-icon" id="hibernateIcon" style="filter: grayscale(100%);">💤</span>
       <span class="stat-value" id="hibernatedTabs">-</span>
     </div>
-    <div class="stat-item" id="memoryItem" title="当前设备所有程序占用的物理内存">
+    <div class="stat-item" id="memoryItem" data-i18n-title="memoryUsage" title="当前设备所有程序占用的物理内存">
       <span class="stat-icon">🧠</span>
       <span class="stat-value" id="memoryUsage">-</span>
     </div>

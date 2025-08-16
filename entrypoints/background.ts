@@ -1,6 +1,9 @@
 import { getSystemMemoryUsage, formatMemorySize } from '../utils/memory';
+import { i18n } from '#i18n';
 
 export default defineBackground(() => {
+  // 初始化i18n
+  const t = i18n.t;
   // 调试开关 - 生产环境可设为 false
   const DEBUG = true;
   const debugLog = DEBUG ? console.log : () => {};
@@ -186,7 +189,7 @@ export default defineBackground(() => {
             
             sendResponse({ success: true, stats });
           } catch (error) {
-            console.error('获取统计信息失败:', error);
+            console.error(t('getStatsError'), error);
             const stats = {
               total: tabs.length,
               active: tabs.filter(tab => !tab.discarded).length,
