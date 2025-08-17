@@ -33,5 +33,11 @@
   "english": "English",
   "languageChanged": "Language changed",
   "pluginSettings": "Plugin Settings",
-  "autoHibernatedTabs": "Auto-hibernated {count} pages"
+  "autoHibernatedTabs": "Auto-hibernated {count} pages",
+  "unlockTab": "Unlock Tab",
+  "lockTab": "Lock Tab",
+  "hibernateTab": "Hibernate Tab",
+  "closeTab": "Close Tab",
+  "hibernateAllTabsInGroup": "Hibernate All Tabs in Group",
+  "hibernateAllActiveTabsInWindow": "Hibernate All Active Tabs in Window"
 }

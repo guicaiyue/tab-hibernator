@@ -33,5 +33,11 @@
   "english": "English",
   "languageChanged": "语言已切换",
   "pluginSettings": "插件设置",
-  "autoHibernatedTabs": "自动休眠{count}个网页"
+  "autoHibernatedTabs": "自动休眠{count}个网页",
+  "unlockTab": "解锁标签页",
+  "lockTab": "锁定标签页",
+  "hibernateTab": "休眠标签页",
+  "closeTab": "关闭标签页",
+  "hibernateAllTabsInGroup": "休眠组内所有标签页",
+  "hibernateAllActiveTabsInWindow": "休眠当前窗口所有活动标签页"
 }

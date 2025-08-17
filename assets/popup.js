@@ -524,7 +524,7 @@ function createTabGroup(group, tabs) {
     hibernateBtn = document.createElement('button');
     hibernateBtn.className = 'group-hibernate-btn-small';
     hibernateBtn.innerHTML = '💤';
-    hibernateBtn.title = '休眠组内所有标签页';
+    hibernateBtn.title = dynamicT('hibernateAllTabsInGroup');
     hibernateBtn.style.cssText = 'background: none; border: none; font-size: 16px; cursor: pointer; padding: 2px 4px; margin-left: auto; margin-right: 8px;';
     hibernateBtn.addEventListener('click', async (e) => {
       e.stopPropagation(); // 防止触发分组折叠
@@ -628,6 +628,7 @@ function createTabGroup(group, tabs) {
 function createTabItem(tab) {
   const tabItem = document.createElement('div');
   tabItem.className = 'tab-item';
+  tabItem.setAttribute('data-tab-id', tab.id);
   
   // 添加lastAccessed时间信息到title属性
   if (tab.lastAccessed) {
@@ -688,6 +689,17 @@ function createTabItem(tab) {
   const tabActions = document.createElement('div');
   tabActions.className = 'tab-actions';
   
+  // 锁定按钮 - 只在未休眠的标签页时显示
+  if (!isHibernated) {
+    const lockBtn = document.createElement('button');
+    lockBtn.className = 'tab-action-btn lock-btn';
+    const isLocked = getTabLockState(tab.id);
+    lockBtn.textContent = isLocked ? '🔒' : '🔓';
+    lockBtn.title = isLocked ? dynamicT('unlockTab') : dynamicT('lockTab');
+    lockBtn.onclick = () => toggleTabLock(tab.id);
+    tabActions.appendChild(lockBtn);
+  }
+  
   // 休眠按钮 - 始终显示，但根据状态改变样式和功能
   const hibernateBtn = document.createElement('button');
   hibernateBtn.className = 'tab-action-btn hibernate-btn';
@@ -712,7 +724,7 @@ function createTabItem(tab) {
     hibernateBtn.style.opacity = '1';
     hibernateBtn.style.cursor = 'pointer';
     hibernateBtn.disabled = false;
-    hibernateBtn.title = '休眠标签页';
+    hibernateBtn.title = dynamicT('hibernateTab');
     hibernateBtn.onclick = () => hibernateTab(tab.id);
   }
   
@@ -725,7 +737,7 @@ function createTabItem(tab) {
     const closeBtn = document.createElement('button');
     closeBtn.className = 'tab-action-btn close-btn';
     closeBtn.textContent = '✕';
-    closeBtn.title = '关闭标签页';
+    closeBtn.title = dynamicT('closeTab');
     closeBtn.onclick = () => closeTab(tab.id);
     tabActions.appendChild(closeBtn);
   }
@@ -741,6 +753,12 @@ function createTabItem(tab) {
 // 休眠单个标签页
 async function hibernateTab(tabId) {
   try {
+    // 检查标签页是否被锁定
+    if (isTabLocked(tabId)) {
+      showMessage('请解除锁定', 'error');
+      return;
+    }
+    
     await browser.tabs.discard(tabId);
     loadStats();
     // 标签页变化会通过事件驱动自动更新列表
@@ -791,6 +809,9 @@ document.addEventListener('DOMContentLoaded', async function() {
   // 初始化语言设置
   currentLanguage = await getCurrentLanguage();
   await updateUILanguage();
+  
+  // 加载锁定状态
+  await loadLockedTabsFromStorage();
   
   await loadWindowsList(); // 先加载窗口列表，设置currentWindowId
   loadStats(); // 然后加载统计信息
@@ -947,7 +968,7 @@ function setupHibernateIconHover() {
         // 变为彩色
         hibernateIcon.style.filter = 'none';
         // 更改提示文字
-        hibernateItem.title = '休眠当前窗口所有活动标签页';
+        hibernateItem.title = dynamicT('hibernateAllActiveTabsInWindow');
         // 添加点击事件
         hibernateItem.style.cursor = 'pointer';
         hibernateItem.onclick = hibernateAllActiveTabs;
@@ -971,7 +992,7 @@ async function hibernateAllActiveTabs() {
   try {
     const queryOptions = currentWindowId ? { windowId: currentWindowId } : {};
     const tabs = await browser.tabs.query(queryOptions);
-    const activeTabsToHibernate = tabs.filter(tab => !tab.discarded && !tab.active);
+    const activeTabsToHibernate = tabs.filter(tab => !tab.discarded && !tab.active && !isTabLocked(tab.id));
     
     let hibernatedCount = 0;
     for (const tab of activeTabsToHibernate) {
@@ -1436,4 +1457,71 @@ function showHelpDialog() {
   helpContent.appendChild(closeBtn);
   helpDialog.appendChild(helpContent);
   document.body.appendChild(helpDialog);
+}
+
+// ==================== 标签页锁定功能 ====================
+
+// 存储锁定状态的全局变量
+let lockedTabs = new Set();
+
+// 获取标签页锁定状态
+function getTabLockState(tabId) {
+  return lockedTabs.has(tabId);
+}
+
+// 设置标签页锁定状态
+function setTabLockState(tabId, isLocked) {
+  if (isLocked) {
+    lockedTabs.add(tabId);
+  } else {
+    lockedTabs.delete(tabId);
+  }
+  // 保存到本地存储
+  browser.storage.local.set({
+    lockedTabs: Array.from(lockedTabs)
+  });
+  // 同步到background.js
+  browser.runtime.sendMessage({
+    action: 'updateLockedTabs',
+    lockedTabs: Array.from(lockedTabs)
+  }).catch(() => {
+    // 忽略连接错误
+  });
+}
+
+// 从本地存储加载锁定状态
+async function loadLockedTabsFromStorage() {
+  try {
+    const result = await browser.storage.local.get('lockedTabs');
+    if (result.lockedTabs && Array.isArray(result.lockedTabs)) {
+      lockedTabs = new Set(result.lockedTabs);
+    }
+  } catch (error) {
+    console.error('加载锁定状态失败:', error);
+  }
+}
+
+// 切换标签页锁定状态
+async function toggleTabLock(tabId) {
+  const isCurrentlyLocked = getTabLockState(tabId);
+  const newLockState = !isCurrentlyLocked;
+  
+  setTabLockState(tabId, newLockState);
+  
+  // 更新UI中的锁定图标
+  updateLockIcon(tabId, newLockState);
+}
+
+// 更新锁定图标显示
+function updateLockIcon(tabId, isLocked) {
+  const lockBtn = document.querySelector(`[data-tab-id="${tabId}"] .lock-btn`);
+  if (lockBtn) {
+    lockBtn.textContent = isLocked ? '🔒' : '🔓';
+    lockBtn.title = isLocked ? dynamicT('unlockTab') : dynamicT('lockTab');
+  }
+}
+
+// 检查标签页是否被锁定
+function isTabLocked(tabId) {
+  return getTabLockState(tabId);
 }

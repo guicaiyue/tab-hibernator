@@ -29,6 +29,27 @@ export default defineBackground(() => {
   // 存储最近创建的标签页信息
   let lastCreatedTab: { id: number; timestamp: number } | null = null;
   
+  // 锁定的标签页集合
+  let lockedTabs = new Set<number>();
+  
+  // 检查标签页是否被锁定
+  function isTabLocked(tabId: number): boolean {
+    return lockedTabs.has(tabId);
+  }
+  
+  // 从存储中加载锁定状态
+  async function loadLockedTabsFromStorage() {
+    try {
+      const result = await browser.storage.local.get(['lockedTabs']);
+      if (result.lockedTabs && Array.isArray(result.lockedTabs)) {
+        lockedTabs = new Set(result.lockedTabs);
+        debugLog('Loaded locked tabs:', Array.from(lockedTabs));
+      }
+    } catch (error) {
+      console.error('Failed to load locked tabs:', error);
+    }
+  }
+  
   // 初始化设置
   async function initializeSettings() {
     try {
@@ -57,6 +78,9 @@ export default defineBackground(() => {
         quickSwitchHibernation = true;
         debugLog('Using default quick switch hibernation:', quickSwitchHibernation);
       }
+      
+      // 加载锁定状态
+      await loadLockedTabsFromStorage();
     } catch (error) {
       console.error('Failed to load settings:', error);
     }
@@ -106,16 +130,6 @@ export default defineBackground(() => {
   browser.tabs.onActivated.addListener(async (activeInfo) => {
     const { tabId } = activeInfo;
     tabLastActivity.set(tabId, Date.now());
-    
-    // 如果标签页被丢弃，重新加载
-    try {
-      const tab = await browser.tabs.get(tabId);
-      if (tab.discarded) {
-        await browser.tabs.reload(tabId);
-      }
-    } catch (error) {
-      console.error('Error handling tab activation:', error);
-    }
     
     // 通知popup标签页已激活
     notifyPopupTabsChanged('activated', tabId);
@@ -249,6 +263,12 @@ export default defineBackground(() => {
   // 检查是否应该休眠标签页（带时间限制）
   function shouldHibernateTab(tab: browser.tabs.Tab): boolean {
     if (!canHibernateTab(tab)) return false;
+    
+    // 检查标签页是否被锁定
+    if (tab.id && isTabLocked(tab.id)) {
+      debugLog(`Tab ${tab.id} is locked, skipping hibernation`);
+      return false;
+    }
     
     // 如果休眠延迟为-1，表示不开启自动休眠
     if (hibernationDelay === -1) {
@@ -386,6 +406,16 @@ export default defineBackground(() => {
       case 'resetHibernationCount':
         autoHibernationCount = 0;
         sendResponse({ success: true });
+        break;
+        
+      case 'updateLockedTabs':
+        if (message.lockedTabs && Array.isArray(message.lockedTabs)) {
+          lockedTabs = new Set(message.lockedTabs);
+          debugLog('Updated locked tabs:', Array.from(lockedTabs));
+          sendResponse({ success: true });
+        } else {
+          sendResponse({ success: false });
+        }
         break;
       
       case 'popupConnected':
