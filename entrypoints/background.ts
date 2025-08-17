@@ -130,6 +130,7 @@ export default defineBackground(() => {
   browser.tabs.onActivated.addListener(async (activeInfo) => {
     const { tabId } = activeInfo;
     tabLastActivity.set(tabId, Date.now());
+    console.log('tab activated activeInfo', activeInfo);
 
     // 通知popup标签页已激活
     notifyPopupTabsChanged('activated', tabId);
@@ -140,53 +141,49 @@ export default defineBackground(() => {
     if (changeInfo.status === 'complete' || changeInfo.url) {
       tabLastActivity.set(tabId, Date.now());
     }
+
+    // 只监听未休眠页面的加载事件
+    if (!tab.discarded && changeInfo.status) {
+      switch (changeInfo.status) {
+        case 'loading':
+              console.log(`未休眠页面开始加载: ${tab.title} (${tabId})`);
+              const currentTime = Date.now();
+              tabLastActivity.set(tab.id, currentTime);
+              // 快速切换休眠功能
+              if (quickSwitchHibernation && lastCreatedTab) {
+                const timeDiff = currentTime - lastCreatedTab.timestamp;
+                // 如果在200ms内创建了新标签页，休眠前一个标签页
+                if (timeDiff <= 200) {
+                    // 延迟100ms执行标签页检查，确保标签页状态稳定
+                    let lastCreatedTabId = lastCreatedTab.id;
+                    // 检查前一个标签页是否仍然存在且未被休眠
+                    browser.tabs.get(lastCreatedTabId).then((previousTab) => {
+                      if (previousTab && !previousTab.discarded && !previousTab.active) {
+                        // 检查标签页是否被锁定
+                        if (!isTabLocked(lastCreatedTabId)) {
+                          hibernateTab(lastCreatedTabId, false);
+                        }
+                      }
+                    });
+                }
+              }
+              // 更新最近创建的标签页信息
+              lastCreatedTab = { id: tab.id, timestamp: currentTime };
+              
+          break;
+        case 'complete':
+          console.log(`未休眠页面加载完成: ${tab.title} (${tabId})`);
+          break;
+      }
+    }
+
     // 通知popup标签页已更新
     notifyPopupTabsChanged('updated', tabId, null, changeInfo);
   });
   
   // 监听标签页创建事件
   browser.tabs.onCreated.addListener(async (tab) => {
-    if (tab.id) {
-      const currentTime = Date.now();
-      tabLastActivity.set(tab.id, currentTime);
-      
-      // 快速切换休眠功能
-      if (quickSwitchHibernation && lastCreatedTab) {
-        const timeDiff = currentTime - lastCreatedTab.timestamp;
-        
-        // 如果在200ms内创建了新标签页，休眠前一个标签页
-        if (timeDiff <= 200) {
-            // 延迟100ms执行标签页检查，确保标签页状态稳定
-            let lastCreatedTabId = lastCreatedTab.id;
-
-            setTimeout(async () => {
-              try {
-                // 检查前一个标签页是否仍然存在且未被休眠
-                const previousTab = await browser.tabs.get(lastCreatedTabId);
-
-                if (previousTab && !previousTab.discarded && !previousTab.active) {
-                  // 检查标签页是否被锁定
-                  if (isTabLocked(lastCreatedTabId)) {
-                    debugLog(`Quick switch skipped: tab ${lastCreatedTabId} is locked`);
-                  } else {
-                    debugLog(`Quick switch detected: hibernating tab ${lastCreatedTabId} (time diff: ${timeDiff}ms) tab`, previousTab);
-
-                    hibernateTab(lastCreatedTabId, false);
-                  }
-                }
-              } catch (error) {
-                // 前一个标签页可能已经被关闭，忽略错误
-                debugLog('Previous tab no longer exists:', error);
-              }
-            }, 1000);
-        }
-      }
-      
-      // 更新最近创建的标签页信息
-      lastCreatedTab = { id: tab.id, timestamp: currentTime };
-      
-      notifyPopupTabsChanged('created', tab.id);
-    }
+    notifyPopupTabsChanged('created', tab.id);
   });
   
   // 监听标签页移除事件
