@@ -130,7 +130,7 @@ export default defineBackground(() => {
   browser.tabs.onActivated.addListener(async (activeInfo) => {
     const { tabId } = activeInfo;
     tabLastActivity.set(tabId, Date.now());
-    
+
     // 通知popup标签页已激活
     notifyPopupTabsChanged('activated', tabId);
   });
@@ -154,21 +154,31 @@ export default defineBackground(() => {
       if (quickSwitchHibernation && lastCreatedTab) {
         const timeDiff = currentTime - lastCreatedTab.timestamp;
         
-        debugLog(`start tab ${lastCreatedTab.id} (time diff: ${timeDiff}ms)`);
-
         // 如果在200ms内创建了新标签页，休眠前一个标签页
         if (timeDiff <= 200) {
-          try {
-            // 检查前一个标签页是否仍然存在且未被休眠
-            const previousTab = await browser.tabs.get(lastCreatedTab.id);
-            if (previousTab && !previousTab.discarded && !previousTab.active) {
-              debugLog(`Quick switch detected: hibernating tab ${lastCreatedTab.id} (time diff: ${timeDiff}ms)`);
-              hibernateTab(lastCreatedTab.id, false);
-            }
-          } catch (error) {
-            // 前一个标签页可能已经被关闭，忽略错误
-            debugLog('Previous tab no longer exists:', error);
-          }
+            // 延迟100ms执行标签页检查，确保标签页状态稳定
+            let lastCreatedTabId = lastCreatedTab.id;
+
+            setTimeout(async () => {
+              try {
+                // 检查前一个标签页是否仍然存在且未被休眠
+                const previousTab = await browser.tabs.get(lastCreatedTabId);
+
+                if (previousTab && !previousTab.discarded && !previousTab.active) {
+                  // 检查标签页是否被锁定
+                  if (isTabLocked(lastCreatedTabId)) {
+                    debugLog(`Quick switch skipped: tab ${lastCreatedTabId} is locked`);
+                  } else {
+                    debugLog(`Quick switch detected: hibernating tab ${lastCreatedTabId} (time diff: ${timeDiff}ms) tab`, previousTab);
+
+                    hibernateTab(lastCreatedTabId, false);
+                  }
+                }
+              } catch (error) {
+                // 前一个标签页可能已经被关闭，忽略错误
+                debugLog('Previous tab no longer exists:', error);
+              }
+            }, 1000);
         }
       }
       
