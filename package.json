@@ -22,11 +22,13 @@
     "browser-extension",
     "tab-management",
     "memory-optimization",
-    "hibernation"
+    "hibernation",
+    "tab-locking",
+    "tab-protection"
   ],
   "author": "",
   "license": "CC-BY-NC-SA-4.0",
-  "description": "A browser extension that automatically hibernates inactive tabs to save memory and CPU resources",
+  "description": "A browser extension that automatically hibernates inactive tabs to save memory and CPU resources, with tab locking support to protect important tabs",
   "devDependencies": {
     "@wxt-dev/i18n": "^0.2.4",
     "wxt": "^0.20.7"
