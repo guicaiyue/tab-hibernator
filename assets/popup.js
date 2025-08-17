@@ -54,7 +54,10 @@ const translations = {
     "close": "关闭",
     "saveSettingsFailed": "保存设置失败",
     "lastAccessedTime": "最后访问时间",
-    "autoHibernatedTabs": "自动休眠{count}个网页"
+    "autoHibernatedTabs": "自动休眠{count}个网页",
+    "quickSwitchHibernation": "快速切换休眠",
+    "enableQuickSwitchHibernation": "启用快速切换休眠功能",
+    "quickSwitchHibernationHelp": "启用后，当快速连续打开新标签页时（200ms内），会自动休眠前一个标签页"
   },
   en: {
     "extName": "Tab Hibernator",
@@ -100,7 +103,10 @@ const translations = {
     "close": "Close",
     "saveSettingsFailed": "Failed to save settings",
     "lastAccessedTime": "Last Accessed Time",
-    "autoHibernatedTabs": "Auto-hibernated {count} pages"
+    "autoHibernatedTabs": "Auto-hibernated {count} pages",
+    "quickSwitchHibernation": "Quick Switch Hibernation",
+    "enableQuickSwitchHibernation": "Enable quick switch hibernation feature",
+    "quickSwitchHibernationHelp": "When enabled, automatically hibernates the previous tab when opening new tabs rapidly (within 200ms)"
   }
 };
 
@@ -1143,6 +1149,41 @@ function showSettingsDialog() {
   whitelistGroup.appendChild(whitelistTextarea);
   whitelistGroup.appendChild(whitelistHelp);
   
+  // 快速切换休眠设置
+  const quickSwitchGroup = document.createElement('div');
+  quickSwitchGroup.style.cssText = 'margin-bottom: 24px;';
+  
+  const quickSwitchLabel = document.createElement('label');
+  quickSwitchLabel.textContent = `${dynamicT('quickSwitchHibernation')}:`;
+  quickSwitchLabel.style.cssText = 'display: block; margin-bottom: 8px; font-weight: 500; color: #333;';
+  
+  const quickSwitchContainer = document.createElement('div');
+  quickSwitchContainer.style.cssText = 'display: flex; align-items: center; gap: 8px;';
+  
+  const quickSwitchCheckbox = document.createElement('input');
+  quickSwitchCheckbox.type = 'checkbox';
+  quickSwitchCheckbox.id = 'quickSwitchHibernationDialog';
+  quickSwitchCheckbox.style.cssText = `
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+  `;
+  
+  const quickSwitchText = document.createElement('span');
+  quickSwitchText.textContent = dynamicT('enableQuickSwitchHibernation');
+  quickSwitchText.style.cssText = 'font-size: 14px; color: #333; cursor: pointer;';
+  quickSwitchText.onclick = () => quickSwitchCheckbox.click();
+  
+  const quickSwitchHelp = document.createElement('div');
+  quickSwitchHelp.textContent = dynamicT('quickSwitchHibernationHelp');
+  quickSwitchHelp.style.cssText = 'font-size: 12px; color: #666; margin-top: 4px;';
+  
+  quickSwitchContainer.appendChild(quickSwitchCheckbox);
+  quickSwitchContainer.appendChild(quickSwitchText);
+  quickSwitchGroup.appendChild(quickSwitchLabel);
+  quickSwitchGroup.appendChild(quickSwitchContainer);
+  quickSwitchGroup.appendChild(quickSwitchHelp);
+  
   // 按钮组
   const buttonGroup = document.createElement('div');
   buttonGroup.style.cssText = 'display: flex; gap: 12px; justify-content: flex-end;';
@@ -1220,6 +1261,7 @@ function showSettingsDialog() {
   scrollableContent.appendChild(languageGroup);
   scrollableContent.appendChild(delayGroup);
   scrollableContent.appendChild(whitelistGroup);
+  scrollableContent.appendChild(quickSwitchGroup);
   
   // 将按钮添加到固定区域
   fixedButtonArea.appendChild(buttonGroup);
@@ -1244,6 +1286,12 @@ async function loadSettingsToDialog(delayInput, whitelistTextarea, languageSelec
         delayInput.value = result.settings.hibernationDelay / (60 * 1000);
       }
       whitelistTextarea.value = result.settings.whitelist.join('\n');
+      
+      // 加载快速切换休眠设置
+       const quickSwitchCheckbox = document.getElementById('quickSwitchHibernationDialog');
+       if (quickSwitchCheckbox) {
+         quickSwitchCheckbox.checked = result.settings.quickSwitchHibernation !== undefined ? result.settings.quickSwitchHibernation : true;
+       }
     }
     
     // 加载当前语言设置
@@ -1264,11 +1312,16 @@ async function saveSettingsFromDialog(delayInput, whitelistTextarea, languageSel
       .map(line => line.trim())
       .filter(line => line.length > 0);
     
+    // 获取快速切换休眠设置
+    const quickSwitchCheckbox = document.getElementById('quickSwitchHibernationDialog');
+    const quickSwitchHibernation = quickSwitchCheckbox ? quickSwitchCheckbox.checked : false;
+    
     const result = await browser.runtime.sendMessage({
       action: 'updateSettings',
       settings: {
         hibernationDelay: hibernationDelay,
-        whitelist: whitelist
+        whitelist: whitelist,
+        quickSwitchHibernation: quickSwitchHibernation
       }
     });
     

@@ -23,10 +23,16 @@ export default defineBackground(() => {
   // 跟踪popup连接状态
   let isPopupConnected = false;
   
+  // 快速切换休眠功能开关
+  let quickSwitchHibernation = true;
+  
+  // 存储最近创建的标签页信息
+  let lastCreatedTab: { id: number; timestamp: number } | null = null;
+  
   // 初始化设置
   async function initializeSettings() {
     try {
-      const result = await browser.storage.local.get(['hibernationDelay', 'whitelist']);
+      const result = await browser.storage.local.get(['hibernationDelay', 'whitelist', 'quickSwitchHibernation']);
       
       if (result.hibernationDelay !== undefined) {
         hibernationDelay = result.hibernationDelay;
@@ -34,12 +40,22 @@ export default defineBackground(() => {
         debugLog('Loaded hibernation delay:', hibernationDelay);
       } else {
         // Using default hibernation delay
+        hibernationDelay = -1;
       }
       
       if (result.whitelist && Array.isArray(result.whitelist)) {
         whitelist.clear();
         result.whitelist.forEach((domain: string) => whitelist.add(domain));
         debugLog('Loaded whitelist:', Array.from(whitelist));
+      }
+      
+      if (result.quickSwitchHibernation !== undefined) {
+        quickSwitchHibernation = result.quickSwitchHibernation;
+        debugLog('Loaded quick switch hibernation:', quickSwitchHibernation);
+      } else {
+        // 默认启用快速切换休眠功能
+        quickSwitchHibernation = true;
+        debugLog('Using default quick switch hibernation:', quickSwitchHibernation);
       }
     } catch (error) {
       console.error('Failed to load settings:', error);
@@ -51,7 +67,8 @@ export default defineBackground(() => {
     try {
       await browser.storage.local.set({
         hibernationDelay: hibernationDelay,
-        whitelist: Array.from(whitelist)
+        whitelist: Array.from(whitelist),
+        quickSwitchHibernation: quickSwitchHibernation
       });
       debugLog('Settings saved successfully');
     } catch (error) {
@@ -114,9 +131,36 @@ export default defineBackground(() => {
   });
   
   // 监听标签页创建事件
-  browser.tabs.onCreated.addListener((tab) => {
+  browser.tabs.onCreated.addListener(async (tab) => {
     if (tab.id) {
-      tabLastActivity.set(tab.id, Date.now());
+      const currentTime = Date.now();
+      tabLastActivity.set(tab.id, currentTime);
+      
+      // 快速切换休眠功能
+      if (quickSwitchHibernation && lastCreatedTab) {
+        const timeDiff = currentTime - lastCreatedTab.timestamp;
+        
+        debugLog(`start tab ${lastCreatedTab.id} (time diff: ${timeDiff}ms)`);
+
+        // 如果在200ms内创建了新标签页，休眠前一个标签页
+        if (timeDiff <= 200) {
+          try {
+            // 检查前一个标签页是否仍然存在且未被休眠
+            const previousTab = await browser.tabs.get(lastCreatedTab.id);
+            if (previousTab && !previousTab.discarded && !previousTab.active) {
+              debugLog(`Quick switch detected: hibernating tab ${lastCreatedTab.id} (time diff: ${timeDiff}ms)`);
+              hibernateTab(lastCreatedTab.id, false);
+            }
+          } catch (error) {
+            // 前一个标签页可能已经被关闭，忽略错误
+            debugLog('Previous tab no longer exists:', error);
+          }
+        }
+      }
+      
+      // 更新最近创建的标签页信息
+      lastCreatedTab = { id: tab.id, timestamp: currentTime };
+      
       notifyPopupTabsChanged('created', tab.id);
     }
   });
@@ -229,8 +273,8 @@ export default defineBackground(() => {
     try {
       await browser.tabs.discard(tabId);
       if (isAutoHibernation) {
-    autoHibernationCount++;
-  }
+        autoHibernationCount++;
+      }
     } catch (error) {
       console.error(`Error hibernating tab ${tabId}:`, error);
     }
@@ -297,7 +341,8 @@ export default defineBackground(() => {
           success: true,
           settings: {
             hibernationDelay: hibernationDelay,
-            whitelist: Array.from(whitelist)
+            whitelist: Array.from(whitelist),
+            quickSwitchHibernation: quickSwitchHibernation
           }
         });
         break;
@@ -312,6 +357,10 @@ export default defineBackground(() => {
             whitelist.clear();
             message.settings.whitelist.forEach((domain: string) => whitelist.add(domain));
             debugLog('Updated whitelist:', Array.from(whitelist));
+          }
+          if (message.settings.quickSwitchHibernation !== undefined) {
+            quickSwitchHibernation = message.settings.quickSwitchHibernation;
+            debugLog('Updated quick switch hibernation:', quickSwitchHibernation);
           }
           // 保存设置到存储
           saveSettings();
