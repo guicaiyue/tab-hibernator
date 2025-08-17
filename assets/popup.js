@@ -57,7 +57,8 @@ const translations = {
     "autoHibernatedTabs": "自动休眠{count}个网页",
     "quickSwitchHibernation": "快速切换休眠",
     "enableQuickSwitchHibernation": "启用快速切换休眠功能",
-    "quickSwitchHibernationHelp": "启用后，当快速连续打开新标签页时（200ms内），会自动休眠前一个标签页"
+    "quickSwitchHibernationHelp": "启用后，当快速连续打开新标签页时（200ms内），会自动休眠前一个标签页",
+    "hibernateAllActiveTabsInWindow": "休眠当前窗口所有活动标签页"
   },
   en: {
     "extName": "Tab Hibernator",
@@ -106,7 +107,8 @@ const translations = {
     "autoHibernatedTabs": "Auto-hibernated {count} pages",
     "quickSwitchHibernation": "Quick Switch Hibernation",
     "enableQuickSwitchHibernation": "Enable quick switch hibernation feature",
-    "quickSwitchHibernationHelp": "When enabled, automatically hibernates the previous tab when opening new tabs rapidly (within 200ms)"
+    "quickSwitchHibernationHelp": "When enabled, automatically hibernates the previous tab when opening new tabs rapidly (within 200ms)",
+    "hibernateAllActiveTabsInWindow": "Hibernate all active tabs in current window"
   }
 };
 
@@ -979,7 +981,7 @@ function setupHibernateIconHover() {
       // 恢复灰色
       hibernateIcon.style.filter = 'grayscale(100%)';
       // 恢复原始提示文字
-      hibernateItem.title = '已经休眠的标签页';
+      hibernateItem.title = dynamicT('hibernatedTabs');
       // 移除点击事件
       hibernateItem.style.cursor = 'default';
       hibernateItem.onclick = null;
