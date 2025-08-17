@@ -175,7 +175,7 @@ function debounce(func, wait) {
 }
 
 // 防抖版本的loadTabsList
-const debouncedLoadTabsList = debounce(loadTabsList, 300);
+const debouncedLoadTabsList = debounce((shouldScroll = false) => loadTabsList(shouldScroll), 300);
 
 // 显示消息
 function showMessage(text, type = 'info') {
@@ -354,8 +354,9 @@ async function loadWindowsList() {
          // 滚动到选中的标签页
          scrollToActiveTab();
          
-         // 更新统计信息，标签页列表会通过事件驱动自动更新
+         // 更新统计信息和标签页列表
          loadStats();
+         loadTabsList(true); // 窗口切换时需要重新加载标签页列表并滚动
        }
      });
     
@@ -406,7 +407,7 @@ function scrollToActiveTabItem() {
 }
 
 // 加载标签页列表
-async function loadTabsList() {
+async function loadTabsList(shouldScroll = false) {
   try {
     // 根据当前选中的窗口过滤标签页
     const queryOptions = currentWindowId ? { windowId: currentWindowId } : {};
@@ -474,10 +475,12 @@ async function loadTabsList() {
     tabsList.innerHTML = '';
     tabsList.appendChild(fragment);
     
-    // 滚动到当前活跃标签页
-    setTimeout(() => {
-      scrollToActiveTabItem();
-    }, 100);
+    // 只有在需要时才滚动到当前活跃标签页
+    if (shouldScroll) {
+      setTimeout(() => {
+        scrollToActiveTabItem();
+      }, 100);
+    }
   } catch (error) {
     console.error('加载标签页列表失败:', error);
     showMessage('加载标签页列表失败', 'error');
@@ -791,7 +794,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   
   await loadWindowsList(); // 先加载窗口列表，设置currentWindowId
   loadStats(); // 然后加载统计信息
-  loadTabsList(); // 最后加载标签页列表
+  loadTabsList(true); // 最后加载标签页列表，首次加载时启用滚动
   await checkHibernationNotification(); // 检查并显示休眠通知
   
   // 通知background popup已连接
