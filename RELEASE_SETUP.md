@@ -12,7 +12,7 @@
 ### 2. WXT Submit配置
 首先需要初始化WXT的提交配置：
 ```bash
-pnpm wxt submit init
+npm wxt submit init
 ```
 
 ## 🔑 GitHub Secrets配置
@@ -51,7 +51,7 @@ EDGE_ACCESS_TOKEN_URL=https://login.microsoftonline.com/你的租户ID/oauth2/v2
 4. 创建OAuth 2.0客户端ID
 5. 使用WXT工具获取refresh token：
    ```bash
-   pnpm wxt submit init chrome
+   npm wxt submit init chrome
    ```
 
 ### Firefox Add-ons
@@ -59,7 +59,7 @@ EDGE_ACCESS_TOKEN_URL=https://login.microsoftonline.com/你的租户ID/oauth2/v2
 2. 创建API密钥
 3. 使用WXT工具配置：
    ```bash
-   pnpm wxt submit init firefox
+   npm wxt submit init firefox
    ```
 
 ### Microsoft Edge Add-ons
@@ -69,7 +69,7 @@ EDGE_ACCESS_TOKEN_URL=https://login.microsoftonline.com/你的租户ID/oauth2/v2
 4. 获取客户端ID和密钥
 5. 使用WXT工具配置：
    ```bash
-   pnpm wxt submit init edge
+   npm wxt submit init edge
    ```
 
 ## 🔄 发布流程
@@ -91,20 +91,20 @@ EDGE_ACCESS_TOKEN_URL=https://login.microsoftonline.com/你的租户ID/oauth2/v2
 项目支持以下构建命令：
 ```bash
 # 构建所有浏览器版本
-pnpm run build:all
+npm run build:all
 
 # 打包所有浏览器版本为ZIP
-pnpm run zip:all
+npm run zip:all
 
 # 单独构建
-pnpm run build:chrome
-pnpm run build:firefox
-pnpm run build:edge
+npm run build:chrome
+npm run build:firefox
+npm run build:edge
 
 # 单独打包
-pnpm run zip:chrome
-pnpm run zip:firefox
-pnpm run zip:edge
+npm run zip:chrome
+npm run zip:firefox
+npm run zip:edge
 ```
 
 ## ⚠️ 注意事项
@@ -152,17 +152,23 @@ pnpm run zip:edge
 ### 调试命令
 ```bash
 # 测试构建
-pnpm run build
+npm run build
 
 # 验证配置
-pnpm wxt submit --dry-run
+npm wxt submit --dry-run
+
+# 验证Edge配置
+npx wxt submit  --dry-run --edge-zip .output/tab-hibernator-0.0.1-edge.zip
 
 # 查看详细日志
-pnpm wxt submit --verbose
+npm wxt submit --verbose
+
+# 提交到Edge
+npx wxt submit --edge-zip .output/tab-hibernator-0.0.1-edge.zip
 
 # 测试标签页锁定功能
 # 在开发模式下验证锁定状态持久化
-pnpm run dev
+npm run dev
 ```
 
 ### 功能测试清单
