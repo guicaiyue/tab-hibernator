@@ -50,7 +50,7 @@ const translations = {
     "saveSettings": "保存设置",
     "cancel": "取消",
     "helpTitle": "❓ 使用帮助",
-    "helpContent": "🛌 浏览器休眠控制插件使用说明：\n\n• 自动休眠：标签页超过设定时间未活动将自动休眠\n• 手动休眠：点击💤图标可手动休眠单个标签页\n• 批量休眠：鼠标悬停在统计区域的💤图标上可休眠所有活动标签页\n• 白名单：在设置中添加域名可防止特定网站被休眠\n• 智能过滤：自动排除活动、固定、有声标签页\n\n💡 提示：休眠的标签页会释放内存，重新点击时会自动恢复",
+    "helpContent": "🛌 浏览器休眠控制插件使用说明：\n\n📋 图标说明：\n• 🛌 插件图标：浏览器工具栏中的主图标，点击打开控制面板\n• 📊 总标签页：显示当前窗口中所有标签页的总数量\n• 🔥 活跃标签页：显示正在活跃使用的标签页数量\n• 💤 休眠标签页：显示已经休眠的标签页数量（鼠标悬停可批量休眠）\n• 🧠 内存使用：显示当前设备所有程序占用的物理内存\n• 🔒 锁定图标：标签页已锁定，不会被休眠\n• 🔓 解锁图标：标签页未锁定，可以被休眠\n• ⚙️ 设置按钮：打开插件设置面板\n• ❓ 帮助按钮：显示使用帮助信息\n• 🖥️ 所有窗口：显示所有浏览器窗口的标签页\n• 🪟 单个窗口：显示单个浏览器窗口\n• ❌ 关闭按钮：关闭标签页\n\n🎯 功能说明：\n• 自动休眠：标签页超过设定时间未活动将自动休眠\n• 手动休眠：点击💤图标可手动休眠单个标签页\n• 批量休眠：鼠标悬停在统计区域的💤图标上可休眠所有活动标签页\n• 标签页锁定：点击锁定图标可锁定重要标签页，防止被意外休眠\n• 白名单：在设置中添加域名可防止特定网站被休眠\n• 智能过滤：自动排除活动、固定、有声标签页\n\n💡 提示：休眠的标签页会释放内存，重新点击时会自动恢复\n\n📞 联系信息：\n• 作者：昔日织\n• 个人网站：<a href='https://xirizhi.cn' target='_blank'>https://xirizhi.cn</a>\n• GitHub开源：<a href='https://github.com/guicaiyue/tab-hibernator' target='_blank'>https://github.com/guicaiyue/tab-hibernator</a>\n• 问题反馈：<a href='https://github.com/guicaiyue/tab-hibernator/issues' target='_blank'>https://github.com/guicaiyue/tab-hibernator/issues</a>",
     "close": "关闭",
     "saveSettingsFailed": "保存设置失败",
     "lastAccessedTime": "最后访问时间",
@@ -100,7 +100,7 @@ const translations = {
      "saveSettings": "Save Settings",
     "cancel": "Cancel",
     "helpTitle": "❓ Help",
-    "helpContent": "🛌 Browser Tab Hibernator Usage Guide:\n\n• Auto Hibernation: Tabs will automatically hibernate after being inactive for the set time\n• Manual Hibernation: Click the 💤 icon to manually hibernate individual tabs\n• Batch Hibernation: Hover over the 💤 icon in the stats area to hibernate all active tabs\n• Whitelist: Add domains in settings to prevent specific websites from being hibernated\n• Smart Filtering: Automatically excludes active, pinned, and audible tabs\n\n💡 Tip: Hibernated tabs will free up memory and automatically restore when clicked",
+    "helpContent": "🛌 Browser Tab Hibernator Usage Guide:\n\n📋 Icon Guide:\n• 🛌 Plugin Icon: Main icon in browser toolbar, click to open control panel\n• 📊 Total Tabs: Shows total number of tabs in current window\n• 🔥 Active Tabs: Shows number of active tabs currently in use\n• 💤 Hibernated Tabs: Shows number of hibernated tabs (hover to batch hibernate)\n• 🧠 Memory Usage: Shows physical memory used by all programs on device\n• 🔒 Lock Icon: Tab is locked and won't be hibernated\n• 🔓 Unlock Icon: Tab is unlocked and can be hibernated\n• ⚙️ Settings Button: Opens plugin settings panel\n• ❓ Help Button: Shows usage help information\n• 🖥️ All Windows: Shows tabs from all browser windows\n• 🪟 Single Window: Shows single browser window\n• ❌ Close Button: Closes tab\n\n🎯 Features:\n• Auto Hibernation: Tabs will automatically hibernate after being inactive for the set time\n• Manual Hibernation: Click the 💤 icon to manually hibernate individual tabs\n• Batch Hibernation: Hover over the 💤 icon in the stats area to hibernate all active tabs\n• Tab Locking: Click lock icon to lock important tabs and prevent accidental hibernation\n• Whitelist: Add domains in settings to prevent specific websites from being hibernated\n• Smart Filtering: Automatically excludes active, pinned, and audible tabs\n\n💡 Tip: Hibernated tabs will free up memory and automatically restore when clicked\n\n📞 Contact Info:\n• Author: 昔日织\n• Website: <a href='https://xirizhi.cn' target='_blank'>https://xirizhi.cn</a>\n• GitHub: <a href='https://github.com/guicaiyue/tab-hibernator' target='_blank'>https://github.com/guicaiyue/tab-hibernator</a>\n• Issues: <a href='https://github.com/guicaiyue/tab-hibernator/issues' target='_blank'>https://github.com/guicaiyue/tab-hibernator/issues</a>",
     "close": "Close",
     "saveSettingsFailed": "Failed to save settings",
     "lastAccessedTime": "Last Accessed Time",
@@ -1417,8 +1417,8 @@ function showHelpDialog() {
   helpTitle.textContent = dynamicT('helpTitle');
   helpTitle.style.cssText = 'margin: 0 0 16px 0; color: #333; font-size: 16px;';
   
-  const helpBody = document.createElement('pre');
-  helpBody.textContent = helpText;
+  const helpBody = document.createElement('div');
+  helpBody.innerHTML = helpText;
   helpBody.style.cssText = `
     white-space: pre-wrap;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -1428,18 +1428,33 @@ function showHelpDialog() {
     margin: 0;
   `;
   
+  // 为链接添加样式
+  const links = helpBody.querySelectorAll('a');
+  links.forEach(link => {
+    link.style.cssText = `
+      color: #007bff;
+      text-decoration: none;
+    `;
+    link.onmouseover = () => link.style.textDecoration = 'underline';
+    link.onmouseout = () => link.style.textDecoration = 'none';
+  });
+  
   const closeBtn = document.createElement('button');
-  closeBtn.textContent = dynamicT('close');
+  closeBtn.textContent = '×';
   closeBtn.style.cssText = `
     position: absolute;
     top: 12px;
     right: 12px;
-    background: #f0f0f0;
+    background: none;
     border: none;
-    border-radius: 6px;
-    padding: 6px 12px;
+    font-size: 20px;
     cursor: pointer;
-    font-size: 12px;
+    color: #666;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     z-index: 1;
   `;
   

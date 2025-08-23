@@ -6,7 +6,7 @@ export default defineConfig({
     const baseManifest = {
       name: '__MSG_extName__',
       description: '__MSG_extDescription__',
-      version: '0.0.1',
+      version: '0.0.2',
       default_locale: 'en',
       permissions: [
         'tabs',
@@ -38,14 +38,13 @@ export default defineConfig({
       baseManifest.permissions.push(
         'tabGroups',
         'windows',
-        'processes',
         'system.memory'
       );
     } else if (browser === 'firefox') {
       // Firefox 只添加支持的权限
       baseManifest.permissions.push(
         'tabGroups' // Firefox 支持 tabGroups
-        // 不添加 windows, processes, system.memory（Firefox 不支持）
+        // 不添加 windows, system.memory（Firefox 不支持）
       );
     }
 
