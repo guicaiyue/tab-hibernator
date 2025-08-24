@@ -46,6 +46,13 @@ export default defineConfig({
         'tabGroups' // Firefox 支持 tabGroups
         // 不添加 windows, system.memory（Firefox 不支持）
       );
+      
+      // 添加 Firefox 扩展 ID
+      baseManifest.browser_specific_settings = {
+        gecko: {
+          id: '{539b7cdf-9763-46b2-8503-57b77ecf9d3e}'
+        }
+      };
     }
 
     return baseManifest;

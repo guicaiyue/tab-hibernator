@@ -157,8 +157,9 @@ npm run build
 # 验证配置
 npm wxt submit --dry-run
 
-# 验证Edge配置
+# 验证Edge/firefox配置
 npx wxt submit  --dry-run --edge-zip .output/tab-hibernator-0.0.1-edge.zip
+npx wxt submit --dry-run --firefox-zip .output/tab-hibernator-0.0.2-firefox.zip --firefox-sources-zip .output/tab-hibernator-0.0.2-sources.zip
 
 # 查看详细日志
 npm wxt submit --verbose
