@@ -261,7 +261,8 @@ async function loadWindowsList() {
     currentWindowId = currentWindow.id;
     
     const windowTabs = document.getElementById('windowTabs');
-    windowTabs.innerHTML = '';
+    // 使用工具函数清空容器
+    DOMUtils.clearContainer(windowTabs);
     
     // 创建图标SVG
     function createWindowIcon(type) {
@@ -279,7 +280,12 @@ async function loadWindowsList() {
           break;
         case 'current':
           // 当前窗口图标（🪟 + 绿色点）
-          iconContainer.innerHTML = '🪟<span class="current-indicator"></span>';
+          // 安全地设置窗口图标
+      iconContainer.textContent = '';
+      iconContainer.textContent = '🪟';
+      const indicator = document.createElement('span');
+      indicator.className = 'current-indicator';
+      iconContainer.appendChild(indicator);
           iconContainer.classList.add('current-window-icon');
           break;
         default:
@@ -474,7 +480,8 @@ async function loadTabsList(shouldScroll = false) {
     }
     
     // 一次性更新DOM
-    tabsList.innerHTML = '';
+    // 使用工具函数清空标签页列表
+  DOMUtils.clearContainer(tabsList);
     tabsList.appendChild(fragment);
     
     // 只有在需要时才滚动到当前活跃标签页
@@ -499,118 +506,153 @@ function renderTabsWithoutGroups(tabs, fragment) {
 
 // 创建标签页分组
 function createTabGroup(group, tabs) {
-  const groupElement = document.createElement('div');
-  groupElement.className = 'tab-group';
+  const groupElement = DOMUtils.createElement('div', { className: 'tab-group' });
+  const groupHeader = createGroupHeader(group, tabs);
+  const groupContent = createGroupContent(tabs);
   
-  // 创建分组头部
-  const groupHeader = document.createElement('div');
-  groupHeader.className = 'tab-group-header';
+  DOMUtils.appendChildren(groupElement, [groupHeader, groupContent]);
+  return groupElement;
+}
+
+// 创建分组头部
+function createGroupHeader(group, tabs) {
+  const groupHeader = DOMUtils.createElement('div', { className: 'tab-group-header' });
+  const { activeTabs, hibernatedTabs } = getTabCounts(tabs);
   
-  const toggle = document.createElement('span');
-  toggle.className = 'tab-group-toggle';
-  toggle.textContent = '▼';
+  const toggle = DOMUtils.createElement('span', {
+    className: 'tab-group-toggle',
+    textContent: '▼'
+  });
   
-  const title = document.createElement('span');
-  title.className = 'tab-group-title';
-  title.textContent = group ? group.title || '未命名分组' : '未分组标签页';
+  const title = DOMUtils.createElement('span', {
+    className: 'tab-group-title',
+    textContent: group ? group.title || '未命名分组' : '未分组标签页'
+  });
   
-  // 计算活跃和休眠标签页数量
-  const activeTabs = tabs.filter(tab => !tab.discarded).length;
-  const hibernatedTabs = tabs.filter(tab => tab.discarded).length;
+  const headerElements = [toggle, title];
   
-  // 删除分组内存显示，因为无法精准估算
-  
-  // 创建一键休眠按钮（小巧版本）- 只有当有活跃标签页时才显示
-  let hibernateBtn = null;
+  // 添加休眠按钮（如果有活跃标签页）
   if (activeTabs > 0) {
-    hibernateBtn = document.createElement('button');
-    hibernateBtn.className = 'group-hibernate-btn-small';
-    hibernateBtn.innerHTML = '💤';
-    hibernateBtn.title = dynamicT('hibernateAllTabsInGroup');
-    hibernateBtn.style.cssText = 'background: none; border: none; font-size: 16px; cursor: pointer; padding: 2px 4px; margin-left: auto; margin-right: 8px;';
-    hibernateBtn.addEventListener('click', async (e) => {
-      e.stopPropagation(); // 防止触发分组折叠
-      const activeTabsInGroup = tabs.filter(tab => !tab.discarded && !tab.active);
-      for (const tab of activeTabsInGroup) {
-        try {
-          await hibernateTab(tab.id);
-        } catch (error) {
-          console.error('休眠标签页失败:', error);
-        }
-      }
-      // 刷新列表
-      debouncedLoadTabsList();
-      showMessage(`已休眠 ${activeTabsInGroup.length} 个标签页`);
+    const hibernateBtn = createGroupHibernateButton(tabs);
+    headerElements.push(hibernateBtn);
+  }
+  
+  // 添加计数块（如果有标签页）
+  if (activeTabs > 0 || hibernatedTabs > 0) {
+    const countBlock = createTabCountBlock(activeTabs, hibernatedTabs);
+    headerElements.push(countBlock);
+  }
+  
+  DOMUtils.appendChildren(groupHeader, headerElements);
+  return groupHeader;
+}
+
+// 获取标签页计数
+function getTabCounts(tabs) {
+  return {
+    activeTabs: tabs.filter(tab => !tab.discarded).length,
+    hibernatedTabs: tabs.filter(tab => tab.discarded).length
+  };
+}
+
+// 创建分组休眠按钮
+function createGroupHibernateButton(tabs) {
+  const hibernateBtn = DOMUtils.createElement('button', {
+    className: 'group-hibernate-btn-small',
+    textContent: '💤',
+    title: dynamicT('hibernateAllTabsInGroup')
+  });
+  
+  hibernateBtn.style.cssText = 'background: none; border: none; font-size: 16px; cursor: pointer; padding: 2px 4px; margin-left: auto; margin-right: 8px;';
+  
+  hibernateBtn.addEventListener('click', async (e) => {
+    e.stopPropagation(); // 防止触发分组折叠
+    await hibernateTabsInGroup(tabs);
+  });
+  
+  return hibernateBtn;
+}
+
+// 休眠分组中的标签页
+async function hibernateTabsInGroup(tabs) {
+  const activeTabsInGroup = tabs.filter(tab => !tab.discarded && !tab.active);
+  let successCount = 0;
+  
+  for (const tab of activeTabsInGroup) {
+    await ErrorHandler.safeExecute(async () => {
+      await hibernateTab(tab.id);
+      successCount++;
+    }, `休眠分组标签页 ${tab.id} 失败`).catch(error => {
+      console.error('休眠标签页失败:', error);
     });
   }
   
-  // 创建数字显示块 - 只有当有标签页时才显示
-  let countBlock = null;
-  if (activeTabs > 0 || hibernatedTabs > 0) {
-    countBlock = document.createElement('div');
-    countBlock.className = 'tab-group-count-block';
-    
-    // 左侧休眠区域 - 只有当有休眠标签页时才显示
-    if (hibernatedTabs > 0) {
-      const hibernatedSection = document.createElement('div');
-      hibernatedSection.className = 'count-section hibernated-section';
-      const hibernatedIcon = document.createElement('span');
-      hibernatedIcon.className = 'sleep-icon';
-      hibernatedIcon.textContent = '💤';
-      hibernatedIcon.style.filter = 'grayscale(100%)';
-      hibernatedSection.appendChild(hibernatedIcon);
-      const hibernatedCount = document.createElement('span');
-      hibernatedCount.className = 'count-number';
-      hibernatedCount.textContent = hibernatedTabs;
-      hibernatedSection.appendChild(hibernatedCount);
-      countBlock.appendChild(hibernatedSection);
-    }
-    
-    // 分割线 - 只有当两边都有数字时才显示
-    if (activeTabs > 0 && hibernatedTabs > 0) {
-      const divider = document.createElement('div');
-      divider.className = 'count-divider';
-      divider.textContent = '/';
-      countBlock.appendChild(divider);
-    }
-    
-    // 右侧活跃区域 - 只有当有活跃标签页时才显示
-    if (activeTabs > 0) {
-      const activeSection = document.createElement('div');
-      activeSection.className = 'count-section active-section';
-      const activeIcon = document.createElement('span');
-      activeIcon.className = 'fire-icon';
-      activeIcon.textContent = '🔥';
-      activeSection.appendChild(activeIcon);
-      const activeCount = document.createElement('span');
-      activeCount.className = 'count-number';
-      activeCount.textContent = activeTabs;
-      activeSection.appendChild(activeCount);
-      countBlock.appendChild(activeSection);
-    }
+  // 刷新列表
+  debouncedLoadTabsList();
+  showMessage(`已休眠 ${successCount} 个标签页`);
+}
+
+// 创建标签页计数块
+function createTabCountBlock(activeTabs, hibernatedTabs) {
+  const countBlock = DOMUtils.createElement('div', { className: 'tab-group-count-block' });
+  const elements = [];
+  
+  // 添加休眠标签页计数
+  if (hibernatedTabs > 0) {
+    elements.push(createCountSection('hibernated-section', '💤', hibernatedTabs, 'grayscale(100%)'));
   }
   
-  groupHeader.appendChild(toggle);
-  groupHeader.appendChild(title);
-  if (hibernateBtn) {
-    groupHeader.appendChild(hibernateBtn);
-  }
-  if (countBlock) {
-    groupHeader.appendChild(countBlock);
+  // 添加分割线
+  if (activeTabs > 0 && hibernatedTabs > 0) {
+    elements.push(DOMUtils.createElement('div', {
+      className: 'count-divider',
+      textContent: '/'
+    }));
   }
   
-  // 创建分组内容
-  const groupContent = document.createElement('div');
-  groupContent.className = 'tab-group-content';
+  // 添加活跃标签页计数
+  if (activeTabs > 0) {
+    elements.push(createCountSection('active-section', '🔥', activeTabs));
+  }
   
-  tabs.forEach(tab => {
-    const tabItem = createTabItem(tab);
-    groupContent.appendChild(tabItem);
+  DOMUtils.appendChildren(countBlock, elements);
+  return countBlock;
+}
+
+// 创建计数区域
+function createCountSection(className, iconText, count, iconFilter = null) {
+  const section = DOMUtils.createElement('div', { className: `count-section ${className}` });
+  const icon = DOMUtils.createElement('span', {
+    className: className.includes('hibernated') ? 'sleep-icon' : 'fire-icon',
+    textContent: iconText
   });
+  
+  if (iconFilter) {
+    icon.style.filter = iconFilter;
+  }
+  
+  const countElement = DOMUtils.createElement('span', {
+    className: 'count-number',
+    textContent: count
+  });
+  
+  DOMUtils.appendChildren(section, [icon, countElement]);
+  return section;
+}
+
+// 创建分组内容
+function createGroupContent(tabs) {
+  const groupContent = DOMUtils.createElement('div', { className: 'tab-group-content' });
+  const tabElements = tabs.map(tab => createTabItem(tab));
+  DOMUtils.appendChildren(groupContent, tabElements);
+  return groupContent;
   
   // 添加点击事件切换展开/折叠
   groupHeader.addEventListener('click', () => {
+    const groupContent = groupElement.querySelector('.tab-group-content');
+    const toggle = groupHeader.querySelector('.tab-group-toggle');
     const isCollapsed = groupContent.classList.contains('collapsed');
+    
     if (isCollapsed) {
       groupContent.classList.remove('collapsed');
       toggle.classList.remove('collapsed');
@@ -619,9 +661,6 @@ function createTabGroup(group, tabs) {
       toggle.classList.add('collapsed');
     }
   });
-  
-  groupElement.appendChild(groupHeader);
-  groupElement.appendChild(groupContent);
   
   return groupElement;
 }
@@ -754,7 +793,17 @@ function createTabItem(tab) {
 
 // 休眠单个标签页
 async function hibernateTab(tabId) {
-  try {
+  // 输入验证
+  if (!ValidationUtils.isValidTabId(tabId)) {
+    const error = ErrorHandler.createError(
+      ErrorHandler.ErrorTypes.VALIDATION_ERROR,
+      '无效的标签页ID'
+    );
+    showMessage(ErrorHandler.showUserError(error), 'error');
+    return;
+  }
+  
+  await ErrorHandler.safeExecute(async () => {
     // 检查标签页是否被锁定
     if (isTabLocked(tabId)) {
       showMessage('请解除锁定', 'error');
@@ -764,16 +813,32 @@ async function hibernateTab(tabId) {
     await browser.tabs.discard(tabId);
     loadStats();
     // 标签页变化会通过事件驱动自动更新列表
-  } catch (error) {
+  }, '休眠标签页失败').catch(error => {
     showMessage('休眠标签页失败', 'error');
-  }
+  });
 }
 
 // 关闭单个标签页
 async function closeTab(tabId) {
-  try {
+  // 输入验证
+  if (!ValidationUtils.isValidTabId(tabId)) {
+    const error = ErrorHandler.createError(
+      ErrorHandler.ErrorTypes.VALIDATION_ERROR,
+      '无效的标签页ID'
+    );
+    showMessage(ErrorHandler.showUserError(error), 'error');
+    return;
+  }
+  
+  await ErrorHandler.safeExecute(async () => {
     // 获取标签页信息进行检查
     const tab = await browser.tabs.get(tabId);
+    
+    // 验证URL
+    if (!ValidationUtils.isValidUrl(tab.url)) {
+      showMessage('无效的标签页URL', 'error');
+      return;
+    }
     
     // 检查是否是扩展程序页面或特殊页面
     if (tab.url.startsWith('chrome-extension://') || 
@@ -794,7 +859,7 @@ async function closeTab(tabId) {
     showMessage('标签页已关闭', 'success');
     loadStats();
     // 标签页变化会通过事件驱动自动更新列表
-  } catch (error) {
+  }, '关闭标签页失败').catch(error => {
     console.error('关闭标签页错误:', error);
     if (error.message && error.message.includes('Cannot close the only remaining tab')) {
       showMessage('无法关闭最后一个标签页', 'error');
@@ -803,7 +868,7 @@ async function closeTab(tabId) {
     } else {
       showMessage('关闭标签页失败: ' + (error.message || '未知错误'), 'error');
     }
-  }
+  });
 }
 
 // 页面加载完成后的初始化
@@ -890,16 +955,42 @@ async function checkHibernationNotification() {
 function showHibernationNotification(count) {
   const message = dynamicT('autoHibernatedTabs').replace('{count}', count);
   
-  // 创建通知元素
-  const notification = document.createElement('div');
-  notification.className = 'hibernation-notification';
-  notification.innerHTML = `
-    <div class="notification-content">
-      <span class="notification-icon">💤</span>
-      <span class="notification-text">${message}</span>
-      <button class="notification-close" onclick="this.parentElement.parentElement.remove()">×</button>
-    </div>
-  `;
+  // 使用工具函数创建通知元素
+  const notification = DOMUtils.createElement('div', {
+    className: 'hibernation-notification'
+  });
+  
+  // 创建通知内容容器
+  const notificationContent = DOMUtils.createElement('div', {
+    className: 'notification-content'
+  });
+  
+  // 创建通知组件
+  const notificationIcon = DOMUtils.createElement('span', {
+    className: 'notification-icon',
+    textContent: '💤'
+  });
+  
+  const notificationText = DOMUtils.createElement('span', {
+    className: 'notification-text',
+    textContent: message // 使用textContent防止XSS
+  });
+  
+  const closeButton = DOMUtils.createElement('button', {
+    className: 'notification-close',
+    textContent: '×',
+    eventListeners: {
+      click: () => notification.remove()
+    }
+  });
+  
+  // 使用工具函数组装通知内容
+  DOMUtils.appendChildren(notificationContent, [
+    notificationIcon,
+    notificationText,
+    closeButton
+  ]);
+  notification.appendChild(notificationContent);
   
   // 添加样式
   notification.style.cssText = `
@@ -991,39 +1082,90 @@ function setupHibernateIconHover() {
 
 // 休眠当前窗口所有活动标签页
 async function hibernateAllActiveTabs() {
-  try {
-    const queryOptions = currentWindowId ? { windowId: currentWindowId } : {};
-    const tabs = await browser.tabs.query(queryOptions);
-    const activeTabsToHibernate = tabs.filter(tab => !tab.discarded && !tab.active && !isTabLocked(tab.id));
-    
-    let hibernatedCount = 0;
-    for (const tab of activeTabsToHibernate) {
-      try {
-        await browser.tabs.discard(tab.id);
-        hibernatedCount++;
-      } catch (error) {
-        console.error('休眠标签页失败:', error);
-      }
+  await ErrorHandler.safeExecute(async () => {
+    // 验证窗口ID（如果存在）
+    if (currentWindowId && !ValidationUtils.isValidWindowId(currentWindowId)) {
+      throw ErrorHandler.createError(
+        ErrorHandler.ErrorTypes.VALIDATION_ERROR,
+        '无效的窗口ID'
+      );
     }
     
+    const queryOptions = currentWindowId ? { windowId: currentWindowId } : {};
+    const tabs = await browser.tabs.query(queryOptions);
+    
+    // 验证获取到的标签页数据
+    if (!Array.isArray(tabs)) {
+      throw ErrorHandler.createError(
+        ErrorHandler.ErrorTypes.CHROME_API_ERROR,
+        '获取标签页列表失败'
+      );
+    }
+    
+    const activeTabsToHibernate = tabs.filter(tab => {
+      // 验证每个标签页的基本属性
+      return tab && 
+             ValidationUtils.isValidTabId(tab.id) && 
+             !tab.discarded && 
+             !tab.active && 
+             !isTabLocked(tab.id);
+    });
+    
+    let hibernatedCount = 0;
+    let failedCount = 0;
+    
+    for (const tab of activeTabsToHibernate) {
+      await ErrorHandler.safeExecute(async () => {
+        await browser.tabs.discard(tab.id);
+        hibernatedCount++;
+      }, `休眠标签页 ${tab.id} 失败`).catch(error => {
+        console.error('休眠单个标签页失败:', error);
+        failedCount++;
+      });
+    }
+    
+    // 显示结果消息
     if (hibernatedCount > 0) {
-      showMessage(`已休眠 ${hibernatedCount} 个活动标签页`, 'success');
+      let message = `已休眠 ${hibernatedCount} 个活动标签页`;
+      if (failedCount > 0) {
+        message += `，${failedCount} 个失败`;
+      }
+      showMessage(message, hibernatedCount > failedCount ? 'success' : 'warning');
+    } else if (failedCount > 0) {
+      showMessage(`休眠失败，${failedCount} 个标签页无法休眠`, 'error');
     } else {
       showMessage('没有可休眠的活动标签页', 'info');
     }
     
     // 统计信息和列表会通过事件驱动自动更新
-  } catch (error) {
+  }, '批量休眠活动标签页失败').catch(error => {
     console.error('休眠活动标签页失败:', error);
-    showMessage('休眠失败', 'error');
-  }
+    showMessage('休眠失败: ' + ErrorHandler.showUserError(error), 'error');
+  });
 }
 
 // 显示设置对话框
+// 显示设置对话框
 function showSettingsDialog() {
-  // 创建设置弹窗
-  const settingsDialog = document.createElement('div');
-  settingsDialog.style.cssText = `
+  const dialogStructure = createSettingsDialogStructure();
+  const formElements = createSettingsFormElements();
+  
+  // 组装对话框
+  assembleSettingsDialog(dialogStructure, formElements);
+  
+  // 加载当前设置
+  loadSettingsToDialog(formElements.delayInput, formElements.whitelistTextarea, formElements.languageSelect);
+  
+  // 绑定事件处理器
+  bindSettingsDialogEvents(dialogStructure, formElements);
+  
+  document.body.appendChild(dialogStructure.dialog);
+}
+
+// 创建设置对话框的基础结构
+function createSettingsDialogStructure() {
+  const dialog = document.createElement('div');
+  dialog.style.cssText = `
     position: fixed;
     top: 0;
     left: 0;
@@ -1037,8 +1179,8 @@ function showSettingsDialog() {
     backdrop-filter: blur(4px);
   `;
   
-  const settingsContent = document.createElement('div');
-  settingsContent.style.cssText = `
+  const content = document.createElement('div');
+  content.style.cssText = `
     background: white;
     border-radius: 12px;
     max-width: 380px;
@@ -1051,7 +1193,6 @@ function showSettingsDialog() {
     flex-direction: column;
   `;
   
-  // 创建内容滚动区域
   const scrollableContent = document.createElement('div');
   scrollableContent.style.cssText = `
     padding: 24px;
@@ -1060,7 +1201,6 @@ function showSettingsDialog() {
     min-height: 0;
   `;
   
-  // 创建固定按钮区域
   const fixedButtonArea = document.createElement('div');
   fixedButtonArea.style.cssText = `
     padding: 16px 24px;
@@ -1070,21 +1210,55 @@ function showSettingsDialog() {
     flex-shrink: 0;
   `;
   
-  const settingsTitle = document.createElement('h3');
-  settingsTitle.textContent = `⚙️ ${dynamicT('pluginSettings')}`;
-  settingsTitle.style.cssText = 'margin: 0 0 20px 0; color: #333; font-size: 18px;';
+  return { dialog, content, scrollableContent, fixedButtonArea };
+}
+
+// 创建设置表单元素
+function createSettingsFormElements() {
+  const title = createSettingsTitle();
+  const languageGroup = createLanguageSettingsGroup();
+  const delayGroup = createDelaySettingsGroup();
+  const whitelistGroup = createWhitelistSettingsGroup();
+  const quickSwitchGroup = createQuickSwitchSettingsGroup();
+  const buttons = createSettingsButtonGroup();
   
-  // 语言设置
-  const languageGroup = document.createElement('div');
-  languageGroup.style.cssText = 'margin-bottom: 20px;';
+  return {
+    title,
+    languageGroup: languageGroup.group,
+    languageSelect: languageGroup.select,
+    delayGroup: delayGroup.group,
+    delayInput: delayGroup.input,
+    whitelistGroup: whitelistGroup.group,
+    whitelistTextarea: whitelistGroup.textarea,
+    quickSwitchGroup: quickSwitchGroup.group,
+    quickSwitchCheckbox: quickSwitchGroup.checkbox,
+    buttonGroup: buttons.buttonGroup,
+    saveBtn: buttons.saveBtn,
+    cancelBtn: buttons.cancelBtn,
+    closeBtn: buttons.closeBtn
+  };
+}
+
+// 创建设置标题
+function createSettingsTitle() {
+  const title = document.createElement('h3');
+  title.textContent = `⚙️ ${dynamicT('pluginSettings')}`;
+  title.style.cssText = 'margin: 0 0 20px 0; color: #333; font-size: 18px;';
+  return title;
+}
+
+// 创建语言设置组
+function createLanguageSettingsGroup() {
+  const group = document.createElement('div');
+  group.style.cssText = 'margin-bottom: 20px;';
   
-  const languageLabel = document.createElement('label');
-  languageLabel.textContent = `${dynamicT('languageSettings')}:`;
-  languageLabel.style.cssText = 'display: block; margin-bottom: 8px; font-weight: 500; color: #333;';
+  const label = document.createElement('label');
+  label.textContent = `${dynamicT('languageSettings')}:`;
+  label.style.cssText = 'display: block; margin-bottom: 8px; font-weight: 500; color: #333;';
   
-  const languageSelect = document.createElement('select');
-  languageSelect.id = 'languageSelect';
-  languageSelect.style.cssText = `
+  const select = document.createElement('select');
+  select.id = 'languageSelect';
+  select.style.cssText = `
     width: 100%;
     padding: 8px 12px;
     border: 1px solid #ddd;
@@ -1098,36 +1272,40 @@ function showSettingsDialog() {
   const zhOption = document.createElement('option');
   zhOption.value = 'zh_CN';
   zhOption.textContent = dynamicT('chinese');
-  languageSelect.appendChild(zhOption);
+  select.appendChild(zhOption);
   
   const enOption = document.createElement('option');
   enOption.value = 'en';
   enOption.textContent = dynamicT('english');
-  languageSelect.appendChild(enOption);
+  select.appendChild(enOption);
   
-  const languageHelp = document.createElement('div');
-  languageHelp.textContent = dynamicT('selectLanguage');
-  languageHelp.style.cssText = 'font-size: 12px; color: #666; margin-top: 4px;';
+  const help = document.createElement('div');
+  help.textContent = dynamicT('selectLanguage');
+  help.style.cssText = 'font-size: 12px; color: #666; margin-top: 4px;';
   
-  languageGroup.appendChild(languageLabel);
-  languageGroup.appendChild(languageSelect);
-  languageGroup.appendChild(languageHelp);
+  group.appendChild(label);
+  group.appendChild(select);
+  group.appendChild(help);
   
-  // 休眠延迟设置
-  const delayGroup = document.createElement('div');
-  delayGroup.style.cssText = 'margin-bottom: 20px;';
+  return { group, select };
+}
+
+// 创建延迟设置组
+function createDelaySettingsGroup() {
+  const group = document.createElement('div');
+  group.style.cssText = 'margin-bottom: 20px;';
   
-  const delayLabel = document.createElement('label');
-  delayLabel.textContent = `${dynamicT('hibernationDelay')}:`;
-  delayLabel.style.cssText = 'display: block; margin-bottom: 8px; font-weight: 500; color: #333;';
+  const label = document.createElement('label');
+  label.textContent = `${dynamicT('hibernationDelay')}:`;
+  label.style.cssText = 'display: block; margin-bottom: 8px; font-weight: 500; color: #333;';
   
-  const delayInput = document.createElement('input');
-  delayInput.type = 'number';
-  delayInput.id = 'hibernationDelayDialog';
-  delayInput.min = '-1';
-  delayInput.max = '120';
-  delayInput.value = '-1';
-  delayInput.style.cssText = `
+  const input = document.createElement('input');
+  input.type = 'number';
+  input.id = 'hibernationDelayDialog';
+  input.min = '-1';
+  input.max = '120';
+  input.value = '-1';
+  input.style.cssText = `
     width: 100%;
     padding: 8px 12px;
     border: 1px solid #ddd;
@@ -1136,26 +1314,30 @@ function showSettingsDialog() {
     box-sizing: border-box;
   `;
   
-  const delayHelp = document.createElement('div');
-  delayHelp.textContent = dynamicT('hibernationDelayHelp');
-  delayHelp.style.cssText = 'font-size: 12px; color: #666; margin-top: 4px;';
+  const help = document.createElement('div');
+  help.textContent = dynamicT('hibernationDelayHelp');
+  help.style.cssText = 'font-size: 12px; color: #666; margin-top: 4px;';
   
-  delayGroup.appendChild(delayLabel);
-  delayGroup.appendChild(delayInput);
-  delayGroup.appendChild(delayHelp);
+  group.appendChild(label);
+  group.appendChild(input);
+  group.appendChild(help);
   
-  // 白名单设置
-  const whitelistGroup = document.createElement('div');
-  whitelistGroup.style.cssText = 'margin-bottom: 24px;';
+  return { group, input };
+}
+
+// 创建白名单设置组
+function createWhitelistSettingsGroup() {
+  const group = document.createElement('div');
+  group.style.cssText = 'margin-bottom: 24px;';
   
-  const whitelistLabel = document.createElement('label');
-  whitelistLabel.textContent = `${dynamicT('whitelistDomains')}:`;
-  whitelistLabel.style.cssText = 'display: block; margin-bottom: 8px; font-weight: 500; color: #333;';
+  const label = document.createElement('label');
+  label.textContent = `${dynamicT('whitelistDomains')}:`;
+  label.style.cssText = 'display: block; margin-bottom: 8px; font-weight: 500; color: #333;';
   
-  const whitelistTextarea = document.createElement('textarea');
-  whitelistTextarea.id = 'whitelistDialog';
-  whitelistTextarea.placeholder = dynamicT('whitelistPlaceholder');
-  whitelistTextarea.style.cssText = `
+  const textarea = document.createElement('textarea');
+  textarea.id = 'whitelistDialog';
+  textarea.placeholder = dynamicT('whitelistPlaceholder');
+  textarea.style.cssText = `
     width: 100%;
     height: 120px;
     padding: 8px 12px;
@@ -1167,50 +1349,58 @@ function showSettingsDialog() {
     font-family: monospace;
   `;
   
-  const whitelistHelp = document.createElement('div');
-  whitelistHelp.textContent = dynamicT('whitelistHelp');
-  whitelistHelp.style.cssText = 'font-size: 12px; color: #666; margin-top: 4px;';
+  const help = document.createElement('div');
+  help.textContent = dynamicT('whitelistHelp');
+  help.style.cssText = 'font-size: 12px; color: #666; margin-top: 4px;';
   
-  whitelistGroup.appendChild(whitelistLabel);
-  whitelistGroup.appendChild(whitelistTextarea);
-  whitelistGroup.appendChild(whitelistHelp);
+  group.appendChild(label);
+  group.appendChild(textarea);
+  group.appendChild(help);
   
-  // 快速切换休眠设置
-  const quickSwitchGroup = document.createElement('div');
-  quickSwitchGroup.style.cssText = 'margin-bottom: 24px;';
+  return { group, textarea };
+}
+
+// 创建快速切换设置组
+function createQuickSwitchSettingsGroup() {
+  const group = document.createElement('div');
+  group.style.cssText = 'margin-bottom: 24px;';
   
-  const quickSwitchLabel = document.createElement('label');
-  quickSwitchLabel.textContent = `${dynamicT('quickSwitchHibernation')}:`;
-  quickSwitchLabel.style.cssText = 'display: block; margin-bottom: 8px; font-weight: 500; color: #333;';
+  const label = document.createElement('label');
+  label.textContent = `${dynamicT('quickSwitchHibernation')}:`;
+  label.style.cssText = 'display: block; margin-bottom: 8px; font-weight: 500; color: #333;';
   
-  const quickSwitchContainer = document.createElement('div');
-  quickSwitchContainer.style.cssText = 'display: flex; align-items: center; gap: 8px;';
+  const container = document.createElement('div');
+  container.style.cssText = 'display: flex; align-items: center; gap: 8px;';
   
-  const quickSwitchCheckbox = document.createElement('input');
-  quickSwitchCheckbox.type = 'checkbox';
-  quickSwitchCheckbox.id = 'quickSwitchHibernationDialog';
-  quickSwitchCheckbox.style.cssText = `
+  const checkbox = document.createElement('input');
+  checkbox.type = 'checkbox';
+  checkbox.id = 'quickSwitchHibernationDialog';
+  checkbox.style.cssText = `
     width: 16px;
     height: 16px;
     cursor: pointer;
   `;
   
-  const quickSwitchText = document.createElement('span');
-  quickSwitchText.textContent = dynamicT('enableQuickSwitchHibernation');
-  quickSwitchText.style.cssText = 'font-size: 14px; color: #333; cursor: pointer;';
-  quickSwitchText.onclick = () => quickSwitchCheckbox.click();
+  const text = document.createElement('span');
+  text.textContent = dynamicT('enableQuickSwitchHibernation');
+  text.style.cssText = 'font-size: 14px; color: #333; cursor: pointer;';
+  text.onclick = () => checkbox.click();
   
-  const quickSwitchHelp = document.createElement('div');
-  quickSwitchHelp.textContent = dynamicT('quickSwitchHibernationHelp');
-  quickSwitchHelp.style.cssText = 'font-size: 12px; color: #666; margin-top: 4px;';
+  const help = document.createElement('div');
+  help.textContent = dynamicT('quickSwitchHibernationHelp');
+  help.style.cssText = 'font-size: 12px; color: #666; margin-top: 4px;';
   
-  quickSwitchContainer.appendChild(quickSwitchCheckbox);
-  quickSwitchContainer.appendChild(quickSwitchText);
-  quickSwitchGroup.appendChild(quickSwitchLabel);
-  quickSwitchGroup.appendChild(quickSwitchContainer);
-  quickSwitchGroup.appendChild(quickSwitchHelp);
+  container.appendChild(checkbox);
+  container.appendChild(text);
+  group.appendChild(label);
+  group.appendChild(container);
+  group.appendChild(help);
   
-  // 按钮组
+  return { group, checkbox };
+}
+
+// 创建设置按钮组
+function createSettingsButtonGroup() {
   const buttonGroup = document.createElement('div');
   buttonGroup.style.cssText = 'display: flex; gap: 12px; justify-content: flex-end;';
   
@@ -1260,44 +1450,55 @@ function showSettingsDialog() {
     justify-content: center;
   `;
   
-  // 加载当前设置
-  loadSettingsToDialog(delayInput, whitelistTextarea, languageSelect);
+  buttonGroup.appendChild(cancelBtn);
+  buttonGroup.appendChild(saveBtn);
+  
+  return { buttonGroup, saveBtn, cancelBtn, closeBtn };
+}
+
+// 组装设置对话框
+function assembleSettingsDialog(structure, elements) {
+  // 将内容添加到滚动区域
+  structure.scrollableContent.appendChild(elements.title);
+  structure.scrollableContent.appendChild(elements.languageGroup);
+  structure.scrollableContent.appendChild(elements.delayGroup);
+  structure.scrollableContent.appendChild(elements.whitelistGroup);
+  structure.scrollableContent.appendChild(elements.quickSwitchGroup);
+  
+  // 将按钮添加到固定区域
+  structure.fixedButtonArea.appendChild(elements.buttonGroup);
+  
+  // 组装弹窗
+  structure.content.appendChild(structure.scrollableContent);
+  structure.content.appendChild(structure.fixedButtonArea);
+  structure.content.appendChild(elements.closeBtn);
+  structure.dialog.appendChild(structure.content);
+}
+
+// 绑定设置对话框事件
+function bindSettingsDialogEvents(structure, elements) {
+  const closeDialog = () => document.body.removeChild(structure.dialog);
   
   // 事件处理
-  saveBtn.onclick = () => saveSettingsFromDialog(delayInput, whitelistTextarea, languageSelect, settingsDialog);
-  cancelBtn.onclick = () => document.body.removeChild(settingsDialog);
-  closeBtn.onclick = () => document.body.removeChild(settingsDialog);
-  settingsDialog.onclick = (e) => {
-    if (e.target === settingsDialog) {
-      document.body.removeChild(settingsDialog);
+  elements.saveBtn.onclick = () => saveSettingsFromDialog(
+    elements.delayInput, 
+    elements.whitelistTextarea, 
+    elements.languageSelect, 
+    structure.dialog
+  );
+  elements.cancelBtn.onclick = closeDialog;
+  elements.closeBtn.onclick = closeDialog;
+  structure.dialog.onclick = (e) => {
+    if (e.target === structure.dialog) {
+      closeDialog();
     }
   };
   
   // 悬停效果
-  saveBtn.onmouseenter = () => saveBtn.style.background = '#2563eb';
-  saveBtn.onmouseleave = () => saveBtn.style.background = '#3b82f6';
-  cancelBtn.onmouseenter = () => cancelBtn.style.background = '#4b5563';
-  cancelBtn.onmouseleave = () => cancelBtn.style.background = '#6b7280';
-  
-  buttonGroup.appendChild(cancelBtn);
-  buttonGroup.appendChild(saveBtn);
-  
-  // 将内容添加到滚动区域
-  scrollableContent.appendChild(settingsTitle);
-  scrollableContent.appendChild(languageGroup);
-  scrollableContent.appendChild(delayGroup);
-  scrollableContent.appendChild(whitelistGroup);
-  scrollableContent.appendChild(quickSwitchGroup);
-  
-  // 将按钮添加到固定区域
-  fixedButtonArea.appendChild(buttonGroup);
-  
-  // 组装弹窗
-  settingsContent.appendChild(scrollableContent);
-  settingsContent.appendChild(fixedButtonArea);
-  settingsContent.appendChild(closeBtn);
-  settingsDialog.appendChild(settingsContent);
-  document.body.appendChild(settingsDialog);
+  elements.saveBtn.onmouseenter = () => elements.saveBtn.style.background = '#2563eb';
+  elements.saveBtn.onmouseleave = () => elements.saveBtn.style.background = '#3b82f6';
+  elements.cancelBtn.onmouseenter = () => elements.cancelBtn.style.background = '#4b5563';
+  elements.cancelBtn.onmouseleave = () => elements.cancelBtn.style.background = '#6b7280';
 }
 
 // 加载设置到对话框
@@ -1370,6 +1571,214 @@ async function saveSettingsFromDialog(delayInput, whitelistTextarea, languageSel
   }
 }
 
+// 输入验证和错误处理工具
+const ValidationUtils = {
+  // 验证标签页ID
+  isValidTabId(tabId) {
+    return typeof tabId === 'number' && tabId > 0;
+  },
+  
+  // 验证窗口ID
+  isValidWindowId(windowId) {
+    return typeof windowId === 'number' && windowId >= -1; // -1 表示当前窗口
+  },
+  
+  // 验证URL
+  isValidUrl(url) {
+    if (typeof url !== 'string') return false;
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
+  },
+  
+  // 验证域名
+  isValidDomain(domain) {
+    if (typeof domain !== 'string') return false;
+    const domainRegex = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?([.][a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+    return domainRegex.test(domain);
+  },
+  
+  // 清理和验证文本输入
+  sanitizeText(text) {
+    if (typeof text !== 'string') return '';
+    return text.trim().replace(/[<>"'&]/g, (match) => {
+      const escapeMap = {
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#x27;',
+        '&': '&amp;'
+      };
+      return escapeMap[match];
+    });
+  }
+};
+
+// 错误处理工具
+const ErrorHandler = {
+  // 错误类型定义
+  ErrorTypes: {
+    VALIDATION_ERROR: 'VALIDATION_ERROR',
+    CHROME_API_ERROR: 'CHROME_API_ERROR',
+    NETWORK_ERROR: 'NETWORK_ERROR',
+    UNKNOWN_ERROR: 'UNKNOWN_ERROR'
+  },
+  
+  // 创建标准化错误
+  createError(type, message, originalError = null) {
+    const error = new Error(message);
+    error.type = type;
+    error.originalError = originalError;
+    error.timestamp = new Date().toISOString();
+    return error;
+  },
+  
+  // 安全地执行异步操作
+  async safeExecute(operation, errorMessage = '操作失败') {
+    try {
+      return await operation();
+    } catch (error) {
+      console.error(`${errorMessage}:`, error);
+      
+      // 根据错误类型进行分类处理
+      let errorType = this.ErrorTypes.UNKNOWN_ERROR;
+      if (error.message.includes('Extension context invalidated')) {
+        errorType = this.ErrorTypes.CHROME_API_ERROR;
+      } else if (error.message.includes('network')) {
+        errorType = this.ErrorTypes.NETWORK_ERROR;
+      }
+      
+      throw this.createError(errorType, errorMessage, error);
+    }
+  },
+  
+  // 显示用户友好的错误消息
+  showUserError(error, fallbackMessage = '发生未知错误') {
+    let userMessage = fallbackMessage;
+    
+    switch (error.type) {
+      case this.ErrorTypes.VALIDATION_ERROR:
+        userMessage = '输入数据无效，请检查后重试';
+        break;
+      case this.ErrorTypes.CHROME_API_ERROR:
+        userMessage = '浏览器API调用失败，请刷新页面重试';
+        break;
+      case this.ErrorTypes.NETWORK_ERROR:
+        userMessage = '网络连接失败，请检查网络后重试';
+        break;
+    }
+    
+    // 这里可以集成通知系统显示错误
+    console.warn('用户错误:', userMessage);
+    return userMessage;
+  }
+};
+
+// DOM 工具函数集合
+const DOMUtils = {
+  // 安全地清空容器内容
+  clearContainer(container) {
+    while (container.firstChild) {
+      container.removeChild(container.firstChild);
+    }
+  },
+  
+  // 创建带样式的元素
+  createElement(tagName, options = {}) {
+    const element = document.createElement(tagName);
+    
+    if (options.className) {
+      element.className = options.className;
+    }
+    
+    if (options.textContent) {
+      element.textContent = options.textContent;
+    }
+    
+    if (options.styles) {
+      element.style.cssText = options.styles;
+    }
+    
+    if (options.attributes) {
+      Object.entries(options.attributes).forEach(([key, value]) => {
+        element.setAttribute(key, value);
+      });
+    }
+    
+    if (options.eventListeners) {
+      Object.entries(options.eventListeners).forEach(([event, handler]) => {
+        element.addEventListener(event, handler);
+      });
+    }
+    
+    return element;
+  },
+  
+  // 批量添加子元素
+  appendChildren(parent, children) {
+    children.forEach(child => {
+      if (child) {
+        parent.appendChild(child);
+      }
+    });
+  },
+  
+  // 创建安全的链接元素
+  createSafeLink(href, text, options = {}) {
+    return this.createElement('a', {
+      textContent: text,
+      attributes: {
+        href: href,
+        target: '_blank',
+        rel: 'noopener noreferrer'
+      },
+      styles: `
+        color: #007bff;
+        text-decoration: none;
+        ${options.styles || ''}
+      `,
+      eventListeners: {
+        mouseover: (e) => e.target.style.textDecoration = 'underline',
+        mouseout: (e) => e.target.style.textDecoration = 'none',
+        ...options.eventListeners
+      }
+    });
+  }
+};
+
+// 安全地创建包含链接的帮助内容
+function createSafeHelpContent(container, text) {
+  // 使用工具函数清空容器
+  DOMUtils.clearContainer(container);
+  
+  // 正则表达式匹配HTML链接
+  const linkRegex = /<a href='([^']+)' target='_blank'>([^<]+)<\/a>/g;
+  let lastIndex = 0;
+  let match;
+  
+  while ((match = linkRegex.exec(text)) !== null) {
+    // 添加链接前的文本
+    if (match.index > lastIndex) {
+      const textNode = document.createTextNode(text.slice(lastIndex, match.index));
+      container.appendChild(textNode);
+    }
+    
+    // 使用工具函数创建安全的链接
+    const link = DOMUtils.createSafeLink(match[1], match[2]);
+    container.appendChild(link);
+    lastIndex = linkRegex.lastIndex;
+  }
+  
+  // 添加剩余的文本
+  if (lastIndex < text.length) {
+    const textNode = document.createTextNode(text.slice(lastIndex));
+    container.appendChild(textNode);
+  }
+}
+
 // 显示帮助对话框
 function showHelpDialog() {
   const helpText = dynamicT('helpContent');
@@ -1418,7 +1827,8 @@ function showHelpDialog() {
   helpTitle.style.cssText = 'margin: 0 0 16px 0; color: #333; font-size: 16px;';
   
   const helpBody = document.createElement('div');
-  helpBody.innerHTML = helpText;
+  // 安全地处理包含链接的帮助文本
+  createSafeHelpContent(helpBody, helpText);
   helpBody.style.cssText = `
     white-space: pre-wrap;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -1520,17 +1930,42 @@ async function loadLockedTabsFromStorage() {
 
 // 切换标签页锁定状态
 async function toggleTabLock(tabId) {
-  const isCurrentlyLocked = getTabLockState(tabId);
-  const newLockState = !isCurrentlyLocked;
+  // 输入验证
+  if (!ValidationUtils.isValidTabId(tabId)) {
+    const error = ErrorHandler.createError(
+      ErrorHandler.ErrorTypes.VALIDATION_ERROR,
+      '无效的标签页ID'
+    );
+    console.error(ErrorHandler.showUserError(error));
+    return;
+  }
   
-  setTabLockState(tabId, newLockState);
-  
-  // 更新UI中的锁定图标
-  updateLockIcon(tabId, newLockState);
+  await ErrorHandler.safeExecute(async () => {
+    const isCurrentlyLocked = getTabLockState(tabId);
+    const newLockState = !isCurrentlyLocked;
+    
+    setTabLockState(tabId, newLockState);
+    
+    // 更新UI中的锁定图标
+    updateLockIcon(tabId, newLockState);
+  }, '切换标签页锁定状态失败').catch(error => {
+    console.error('切换锁定状态失败:', error);
+  });
 }
 
 // 更新锁定图标显示
 function updateLockIcon(tabId, isLocked) {
+  // 输入验证
+  if (!ValidationUtils.isValidTabId(tabId)) {
+    console.error('无效的标签页ID:', tabId);
+    return;
+  }
+  
+  if (typeof isLocked !== 'boolean') {
+    console.error('无效的锁定状态:', isLocked);
+    return;
+  }
+  
   const lockBtn = document.querySelector(`[data-tab-id="${tabId}"] .lock-btn`);
   if (lockBtn) {
     lockBtn.textContent = isLocked ? '🔒' : '🔓';
@@ -1540,5 +1975,11 @@ function updateLockIcon(tabId, isLocked) {
 
 // 检查标签页是否被锁定
 function isTabLocked(tabId) {
+  // 输入验证
+  if (!ValidationUtils.isValidTabId(tabId)) {
+    console.error('无效的标签页ID:', tabId);
+    return false;
+  }
+  
   return getTabLockState(tabId);
 }
