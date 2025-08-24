@@ -166,7 +166,7 @@ npm wxt submit --verbose
 
 # 提交到Edge
 npx wxt submit --edge-zip .output/tab-hibernator-0.0.1-edge.zip
-
+npx wxt submit --firefox-zip .output/tab-hibernator-0.0.3-firefox.zip --firefox-sources-zip .output/tab-hibernator-0.0.3-sources.zip
 # 测试标签页锁定功能
 # 在开发模式下验证锁定状态持久化
 npm run dev

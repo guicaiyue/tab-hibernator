@@ -6,7 +6,7 @@ export default defineConfig({
     const baseManifest = {
       name: '__MSG_extName__',
       description: '__MSG_extDescription__',
-      version: '0.0.2',
+      // version 会自动从 package.json 读取，无需手动指定
       default_locale: 'en',
       permissions: [
         'tabs',
