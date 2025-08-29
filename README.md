@@ -21,9 +21,9 @@
 
 ### 🏪 应用商店安装（推荐）
 
-- **Chrome Web Store**: 等待审核通过后，会在Chrome Web Store发布
-- **Microsoft Edge Add-ons**: 等待审核通过后，会在Microsoft Edge Add-ons发布
-- **Firefox Add-ons**: 等待审核通过后，会在Firefox Add-ons发布
+- **Chrome Web 插件商店**: [下载地址](https://chromewebstore.google.com/detail/tab-hibernator/pdpiophdlpjmlefadphnaidkfckmmkek?authuser=0&hl=zh-CN)
+- **Microsoft Edge 插件商店**: [下载地址](https://microsoftedge.microsoft.com/addons/detail/%E7%BD%91%E9%A1%B5%E4%BC%91%E7%9C%A0%E5%A4%A7%E5%B8%88/ifnfcdndnbicmjeebpcpfjeddefaedgo)
+- **Firefox 插件商店**: [下载地址](https://addons.mozilla.org/zh-CN/firefox/addon/%E7%BD%91%E9%A1%B5%E4%BC%91%E7%9C%A0%E5%A4%A7%E5%B8%88/)
 
 ### 🛠️ 开发者安装
 
