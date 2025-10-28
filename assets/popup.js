@@ -508,7 +508,7 @@ function renderTabsWithoutGroups(tabs, fragment) {
 function createTabGroup(group, tabs) {
   const groupElement = DOMUtils.createElement('div', { className: 'tab-group' });
   const groupHeader = createGroupHeader(group, tabs);
-  const groupContent = createGroupContent(tabs);
+  const groupContent = createGroupContent(tabs,groupHeader);
   
   DOMUtils.appendChildren(groupElement, [groupHeader, groupContent]);
   return groupElement;
@@ -641,28 +641,30 @@ function createCountSection(className, iconText, count, iconFilter = null) {
 }
 
 // 创建分组内容
-function createGroupContent(tabs) {
+function createGroupContent(tabs,groupHeader) {
   const groupContent = DOMUtils.createElement('div', { className: 'tab-group-content' });
   const tabElements = tabs.map(tab => createTabItem(tab));
   DOMUtils.appendChildren(groupContent, tabElements);
-  return groupContent;
+
   
   // 添加点击事件切换展开/折叠
-  groupHeader.addEventListener('click', () => {
-    const groupContent = groupElement.querySelector('.tab-group-content');
-    const toggle = groupHeader.querySelector('.tab-group-toggle');
-    const isCollapsed = groupContent.classList.contains('collapsed');
-    
-    if (isCollapsed) {
-      groupContent.classList.remove('collapsed');
-      toggle.classList.remove('collapsed');
-    } else {
-      groupContent.classList.add('collapsed');
-      toggle.classList.add('collapsed');
-    }
-  });
-  
-  return groupElement;
+  groupHeader.querySelectorAll(
+    '.tab-group-toggle,.tab-group-title'
+    ).forEach(element => {
+        element.addEventListener('click', () => {
+        const toggle = groupHeader.querySelector('.tab-group-toggle');
+        const isCollapsed = groupContent.classList.contains('collapsed');
+        
+        if (isCollapsed) {
+          groupContent.classList.remove('collapsed');
+          toggle.classList.remove('collapsed');
+        } else {
+          groupContent.classList.add('collapsed');
+          toggle.classList.add('collapsed');
+        }
+      });
+    });
+  return groupContent;
 }
 
 // 创建标签页项
@@ -752,6 +754,7 @@ function createTabItem(tab) {
     hibernateBtn.style.cursor = 'not-allowed';
     hibernateBtn.disabled = true;
     hibernateBtn.title = '已休眠';
+    tabItem.classList.add("close-tab");
   } else if (isActive) {
     // 活动标签页：灰色图标，不可点击
     hibernateBtn.textContent = '💤';
@@ -759,6 +762,7 @@ function createTabItem(tab) {
     hibernateBtn.style.cursor = 'not-allowed';
     hibernateBtn.disabled = true;
     hibernateBtn.title = '活动标签页无法休眠';
+    tabItem.classList.remove("close-tab");
   } else {
     // 可休眠：彩色图标，可点击
     hibernateBtn.textContent = '💤';
@@ -767,6 +771,7 @@ function createTabItem(tab) {
     hibernateBtn.disabled = false;
     hibernateBtn.title = dynamicT('hibernateTab');
     hibernateBtn.onclick = () => hibernateTab(tab.id);
+    tabItem.classList.remove("close-tab");
   }
   
   tabActions.appendChild(hibernateBtn);
