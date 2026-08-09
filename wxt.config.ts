@@ -38,8 +38,8 @@ export default defineConfig({
     if (browser === 'chrome' || browser === 'edge') {
       baseManifest.permissions.push(
         'tabGroups',
-        'windows',
-        'system.memory'
+        'windows'
+        // 已移除 system.memory：源码零使用，Edge/Chrome 商店要求移除与功能无关权限
       );
     } else if (browser === 'firefox') {
       // Firefox 只添加支持的权限
