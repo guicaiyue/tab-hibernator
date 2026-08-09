@@ -11,7 +11,8 @@ export default defineConfig({
       permissions: [
         'tabs',
         'storage',
-        'activeTab'
+        'activeTab',
+        'alarms'
       ],
       action: {
         default_popup: 'popup.html',

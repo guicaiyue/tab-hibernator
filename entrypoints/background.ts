@@ -378,10 +378,14 @@ export default defineBackground(() => {
     }
   }
   
-  // 每分钟检查一次
-  setInterval(() => {
-    checkForHibernation();
-  }, 60 * 1000);
+  // 每分钟检查一次（MV3 修复：用 chrome.alarms 替代 setInterval，
+  // SW 被 Chrome terminate 后 alarm 到期仍会唤醒 SW 执行检查）
+  browser.alarms.create('hibernationCheck', { periodInMinutes: 1 });
+  browser.alarms.onAlarm.addListener((alarm) => {
+    if (alarm.name === 'hibernationCheck') {
+      checkForHibernation();
+    }
+  });
   
   // 立即执行一次检查（用于测试）
   setTimeout(() => {
