@@ -8,9 +8,6 @@ export default defineBackground(() => {
   const DEBUG = true;
   const debugLog = DEBUG ? console.log : () => {};
 
-  // 存储标签页的最后活动时间
-  const tabLastActivity = new Map<number, number>();
-  
   // 休眠延迟时间（毫秒）- 默认-1（不开启）
   let hibernationDelay = -1;
   
@@ -129,7 +126,6 @@ export default defineBackground(() => {
   // 监听标签页激活事件
   browser.tabs.onActivated.addListener(async (activeInfo) => {
     const { tabId } = activeInfo;
-    tabLastActivity.set(tabId, Date.now());
     console.log('tab activated activeInfo', activeInfo);
 
     // 通知popup标签页已激活
@@ -138,17 +134,12 @@ export default defineBackground(() => {
   
   // 监听标签页更新事件
   browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-    if (changeInfo.status === 'complete' || changeInfo.url) {
-      tabLastActivity.set(tabId, Date.now());
-    }
-
     // 只监听未休眠页面的加载事件
     if (!tab.discarded && changeInfo.status) {
       switch (changeInfo.status) {
         case 'loading':
               console.log(`未休眠页面开始加载: ${tab.title} (${tabId})`);
               const currentTime = Date.now();
-              tabLastActivity.set(tab.id, currentTime);
               // 快速切换休眠功能
               if (quickSwitchHibernation && lastCreatedTab) {
                 const timeDiff = currentTime - lastCreatedTab.timestamp;
@@ -159,9 +150,22 @@ export default defineBackground(() => {
                     // 检查前一个标签页是否仍然存在且未被休眠
                     browser.tabs.get(lastCreatedTabId).then((previousTab) => {
                       if (previousTab && !previousTab.discarded && !previousTab.active) {
-                        // 检查标签页是否被锁定
+                        // 检查标签页是否被锁定（修复Bug#3：同时检查白名单）
                         if (!isTabLocked(lastCreatedTabId)) {
-                          hibernateTab(lastCreatedTabId, false);
+                          let whitelisted = false;
+                          if (previousTab.url) {
+                            try {
+                              const url = new URL(previousTab.url);
+                              whitelisted = isWhitelisted(url.hostname);
+                            } catch (e) {
+                              whitelisted = false;
+                            }
+                          }
+                          if (!whitelisted) {
+                            hibernateTab(lastCreatedTabId, false);
+                          } else {
+                            debugLog(`跳过快速切换休眠: ${previousTab.url} 在白名单中`);
+                          }
                         }
                       }
                     });
@@ -188,19 +192,16 @@ export default defineBackground(() => {
   
   // 监听标签页移除事件
   browser.tabs.onRemoved.addListener((tabId) => {
-    tabLastActivity.delete(tabId);
     notifyPopupTabsChanged('removed', tabId);
   });
 
   // 监听标签页移动事件
   browser.tabs.onMoved.addListener((tabId, moveInfo) => {
-    tabLastActivity.set(tabId, Date.now());
     notifyPopupTabsChanged('moved', tabId);
   });
 
   // 监听标签页附加事件（移动到其他窗口）
   browser.tabs.onAttached.addListener((tabId, attachInfo) => {
-    tabLastActivity.set(tabId, Date.now());
     notifyPopupTabsChanged('attached', tabId);
   });
 
@@ -240,6 +241,13 @@ export default defineBackground(() => {
     }
   }
   
+  // 判断hostname是否属于白名单（含子域匹配，修复Bug#2）
+  function isWhitelisted(hostname: string): boolean {
+    return Array.from(whitelist).some((domain) =>
+      hostname === domain || hostname.endsWith('.' + domain)
+    );
+  }
+
   // 提取公共的基础检查逻辑
   function canHibernateTab(tab: browser.tabs.Tab): boolean {
     if (!tab.id || !tab.url) return false;
@@ -247,10 +255,10 @@ export default defineBackground(() => {
     // 不休眠活动标签页、固定标签页、已丢弃标签页、播放音频的标签页
     if (tab.active || tab.pinned || tab.discarded || tab.audible) return false;
     
-    // 检查白名单
+    // 检查白名单（主域与子域均豁免）
     try {
       const url = new URL(tab.url);
-      if (whitelist.has(url.hostname)) return false;
+      if (isWhitelisted(url.hostname)) return false;
     } catch (error) {
       console.error('Error parsing URL:', error);
       return false;
@@ -295,8 +303,28 @@ export default defineBackground(() => {
   
 
   
-  // 休眠标签页
+  // 休眠标签页（修复Bug#1：所有路径统一尊重锁定与白名单）
   async function hibernateTab(tabId: number, isAutoHibernation: boolean = false) {
+    // 锁定标签不可休眠（防止消息/手动路径绕过）
+    if (isTabLocked(tabId)) {
+      debugLog(`跳过休眠: 标签 ${tabId} 已锁定`);
+      return;
+    }
+    // 白名单标签不可休眠（防止消息/手动路径绕过）
+    try {
+      const tab = await browser.tabs.get(tabId);
+      if (tab.url) {
+        const url = new URL(tab.url);
+        if (isWhitelisted(url.hostname)) {
+          debugLog(`跳过休眠: 标签 ${tabId} (${tab.url}) 在白名单中`);
+          return;
+        }
+      }
+    } catch (error) {
+      console.error(`Error checking tab ${tabId} before hibernation:`, error);
+      return;
+    }
+
     try {
       await browser.tabs.discard(tabId);
       if (isAutoHibernation) {
